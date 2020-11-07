@@ -10,21 +10,21 @@ Wrapper for Markov chain-based cost optimal control charts. Includes methods for
 \usage{
 Markovchart(shiftfun = c("exp", "exp-geo", "deg"), h, k, sigma, s,
             delta, probmix = 0.5, probnbin = 0.5, disj = 1, RanRep
-            = FALSE, alpha = NULL, beta = NULL, RanSam = FALSE, a = NULL, b =
-            NULL, StateDep = TRUE, q = NULL, z = NULL, p = 1, Vd =
-            50, V, Qparam = 25, COST = c("no", "yes", "optim"),
-            constantr = FALSE, cs = NULL, cofun = cofun_default,
-            coparams = NULL, crfun = crfun_default, crparams =
-            NULL, cf = crparams, vcofun = vcofun_default,
+            = FALSE, alpha = NULL, beta = NULL, RanSam = FALSE,
+            StateDep = FALSE, a = NULL, b = NULL, q = NULL,
+            z = NULL, p = 1, Vd = 50, V, Qparam = 25,
+            COST = c("no", "yes", "optim"), constantr = FALSE,
+            ooc_rep = 0, cs = NULL, cofun = cofun_default,
+            coparams = NULL, crfun = crfun_default, crparams = NULL,
+            cf = crparams, vcofun = vcofun_default,
             vcoparams = c(0, 0), vcrfun = vcrfun_default,
-            vcrparams = c(0, 0), method = c("L-BFGS-B",
-            "Nelder-Mead", "BFGS", "CG", "SANN", "Brent"),
-            parallel_opt = NULL, silent = TRUE, ...)
+            vcrparams = c(0, 0), method = c("L-BFGS-B", "Nelder-Mead",
+            "BFGS", "CG", "SANN", "Brent"), parallel_opt = NULL,
+            silent = TRUE, ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{shiftfun}{
-A string defining the shift size distribution to be used. Must be either "exp" (exponential), "exp-geo" (exponential-geometric mixture) or "deg" (degenerate). Use "deg" for fixed shift size with perfect repair and guaranteed sampling i.e. Duncan's traditional cycle model. (Random repair and random sampling is not implemented for the fixed shift size distribution.)
+A string defining the shift size distribution to be used. Must be either \code{"exp"} (exponential), \code{"exp-geo"} (exponential-geometric mixture) or \code{"deg"} (degenerate). Use \code{"deg"} for fixed shift size with perfect repair and guaranteed sampling, i.e. Duncan"s traditional cycle model.
 }
   \item{h}{
 The time between samplings. Must be a positive value, can be a numeric vector. For optimisation, this is the initial value.
@@ -33,7 +33,7 @@ The time between samplings. Must be a positive value, can be a numeric vector. F
 The control limit (critical value). Must be a positive value, can be a numeric vector. For optimisation, this is the initial value. Only one sided shifts are allowed, thus there is only one control limit.
 }
   \item{sigma}{
-Process standard deviation (the distribution is normal).
+Process standard deviation (the distribution is assumed to be normal).
 }
   \item{s}{
 Expected number of shifts in an unit time interval.
@@ -42,16 +42,16 @@ Expected number of shifts in an unit time interval.
 Expected shift size. Used as the parameter of the exponential distribution (\code{shiftfun="exp"} or \code{"exp-geo"}), or simply as the size of the shift (\code{shiftfun="deg"}).
 }
   \item{probmix}{
-The weight of the geometric distribution in case of exponential-geometric mixture shift distribution and should be between 0 and 1.
+The weight of the geometric distribution in case of exponential-geometric mixture shift distribution; should be between 0 and 1.
 }
   \item{probnbin}{
-The probability parameter of the geometric distribution in case of exponential-geometric mixture shift distribution and should be between 0 and 1.
+The probability parameter of the geometric distribution in case of exponential-geometric mixture shift distribution; should be between 0 and 1.
 }
   \item{disj}{
 The size of a discrete jump in case of exponential-geometric mixture shift distribution, must be a positive number.
 }
   \item{RanRep}{
-Logical. Should the repair be random? Default is FALSE (no). The repair is always perfect (non-random) for \code{shiftfun="deg"}.
+Logical. Should the repair be random? Default is \code{FALSE} (the repair is perfect, the process is always repaired to the target value). The repair is always perfect (non-random) for \code{shiftfun="deg"}.
 }
   \item{alpha}{
 First shape parameter for the random repair beta distribution.
@@ -60,28 +60,28 @@ First shape parameter for the random repair beta distribution.
 Second shape parameter for the random repair beta distribution.
 }
   \item{RanSam}{
-Logical. Should the sampling be random? Default is FALSE (no). The sampling is never random for \code{shiftfun="deg"}.
+Logical. Should the sampling be random? Default is \code{FALSE} (no). The sampling is never random for \code{shiftfun="deg"}.
+}
+  \item{StateDep}{
+Logical. Should the sampling probability also depend on the distance from the target value (state dependency)? (If TRUE, a beta distribution is used for the sampling probability, if \code{FALSE} then a logistic function.)
 }
   \item{a}{
-First parameter*\code{h}  for the random sampling time beta distribution. The first shape parameter is \code{a/h} to create dependency on the time between samplings.
+First parameter*\code{h} for the random sampling time beta distribution. The first shape parameter is \code{a/h} to create dependency on the time between samplings as described at the \code{StateDep} parameter.
 }
   \item{b}{
 Second shape parameter for the random sampling time beta distribution.
-}
-  \item{StateDep}{
-Logical. Should the sampling probability also depend on the distance from the target value (state dependency)? (If TRUE, a beta distribution is used for the sampling probability, if FALSE then a logistic function.)
 }
   \item{q}{
 The steepness of the curve of the random sampling time logistic function.
 }
   \item{z}{
-The logistic sigmoid's midpoint of the random sampling time logistic function.
+The logistic sigmoid"s midpoint of the random sampling time logistic function.
 }
   \item{p}{
-The weight of the cost expectation in the calculation of the G-value and should be between 0 and 1.
+The weight of the cost expectation in the calculation of the G-value; should be between 0 and 1.
 }
   \item{Vd}{
-Integer discretisation parameter: the number of states after the equidistant discretisation of the state space. Should be an integer value greater than 2.
+Integer discretisation parameter: the number of states in the equidistant discretisation of the state space. Should be an integer value greater than 2.
 }
   \item{V}{
 Numeric discretisation parameter: the maximum (positive) distance from the target value taken into account.
@@ -90,49 +90,52 @@ Numeric discretisation parameter: the maximum (positive) distance from the targe
 Integer discretisation parameter: the number of maximum events taken into account within a sampling interval.
 }
   \item{COST}{
-A string of value of either "no"", "yes"" or "optim". Default is no, in which case only the stationary distribution is returned. If yes, statistics related to costs are calculated and cost parameters must be provided. Optimisation (when the value is optim) is only possible with respect to costs.
+A string of value of either \code{"no"}, \code{"yes"} or \code{"optim"}. Default is no, in which case only the stationary distribution is returned. If yes, statistics related to costs are calculated and cost parameters must be provided. Optimisation (when the value is optim) is only possible with respect to costs.
 }
   \item{constantr}{
-Logical. Should the repair cost be assumed to constantly occur over time (TRUE) or assumed to only occur when there is a repair due to an alarm (FALSE)? See 'Details'.
+Logical. Should the repair cost be assumed to constantly occur over time (\code{TRUE}) or assumed to only occur when there is a repair due to an alarm (\code{FALSE}, default)? If \code{TRUE}, then the repair cost should be given per unit time.
+}
+  \item{ooc_rep}{
+Numeric value between 0 and 1. The percentage of repair cost ocurring during out-of-control operation. Default is 0. If a value greater than 0 is set, then \code{constantr} should be \code{TRUE}, but it is not forced.
 }
   \item{cs}{
 Sampling cost per sampling.
 }
   \item{cofun}{
-A function describing the relationship between the distance from the target value and the resulting out-of-control costs. Default is calculated using a base and a distance-scaling out-of-control parameter. See 'Details'.
+A function describing the relationship between the distance from the target value and the resulting out-of-control costs. Default is calculated using a base and a distance-scaling out-of-control parameter. See "Details".
 }
   \item{coparams}{
 Numeric vector. Parameters of \code{cofun}.
 }
   \item{crfun}{
-A function describing the relationship between the distance from the target value and the resulting repair costs. For the default function see 'Details'.
+A function describing the relationship between the distance from the target value and the resulting repair costs. The default function assumes a linear relationship between the repair cost and the distance, and uses a base and a distance-scaling repair cost parameter. See "Details".
 }
   \item{crparams}{
 Numeric vector. Parameters of \code{crfun}.
 }
   \item{cf}{
-Numeric. The false alarm cost. Only relevant when \code{shiftfun} is "deg"."
+Numeric. The false alarm cost. Only relevant when \code{shiftfun} is \code{"deg"}.
 }
   \item{vcofun}{
-A function describing the relationship between the distance from the target value and the resulting out-of-control cost variance. For the default function see 'Details'.
+A function describing the relationship between the distance from the target value and the resulting out-of-control cost variance. For the default function see "Details".
 }
   \item{vcoparams}{
 Numeric vector. Parameters of \code{vcofun}.
 }
   \item{vcrfun}{
-A function describing the relationship between the distance from the target value and the resulting repair cost variance. For the default function see 'Details'.
+A function describing the relationship between the distance from the target value and the resulting repair cost variance. For the default function see "Details".
 }
   \item{vcrparams}{
 Numeric vector. Parameters of \code{vcrfun}.
 }
   \item{method}{
-Method used for optimisation. Same as the argument of \code{optim}, but the default here is "L-BFGS-B", because it turned out to be more robust in testing.
+Method used for optimisation. Same as the argument of \code{optim}, but the default here is \code{"L-BFGS-B"}, because it turned out to be more robust in testing.
 }
   \item{parallel_opt}{
-A list of parallel options. See e.g. the argument \code{parallel} in the documentation of \code{\link[optimParallel]{optimParallel}}. If left empty then the number of cores (threads) is automatically detected and all but one is used. (Single-core computers simply use one core.)
+A list of parallel options. See e.g. the argument \code{parallel} in the documentation of \code{\link[optimParallel]{optimParallel}}. Can be left empty, in this case the number of cores (threads) is automatically detected and all but one is used. (Single-core computers simply use one core.)
 }
   \item{silent}{
-Should the call be returned? Default is FALSE.
+Should the call be returned? Default is \code{FALSE}.
 }
   \item{\dots}{
 Further arguments to be passed down to \code{optimParallel}.
@@ -143,9 +146,9 @@ The \code{constantr} parameter is used for different repair assumptions. In trad
 
 The default \code{cofun} calculates the out-of-control (OOC) cost using a base and a distance-scaling OOC parameter:
 
-\deqn{c_{o} = c_{ob} + c_{os} \Delta\mu_0^2,}{c_o = c_ob + c_os \Delta\mu_0^2,}
+\deqn{c_{o} = c_{ob} + c_{os} A^2(v),}{c_o = c_ob + c_os A^2(v),}
 
-where \eqn{c_{o}}{c_o} is the total OOC cost, \eqn{ c_{ob}}{c_ob} is the base OOC cost (even without shift), \eqn{c_{os}}{c_os} is the shift-scaling cost and \eqn{\Delta\mu_0^2}{\Delta\mu_0^2} is the squared distance from the target value. This latter part is defined like this because we are using a Taguchi-type loss function. Even if the user defines a custom cost function for the OOC cost this \eqn{\Delta\mu_0^2}{\Delta\mu_0^2} term must be included, as a closed form solution has been developed for the calculation of the squared distances in case of exponential shifts, considerably decreasing run times. Thus the arguments of the OOC cost function should look like this: function(\eqn{\Delta\mu_0^2}{\Delta\mu_0^2}, other parameters contained in a vector). \eqn{\Delta\mu_0^2}{\Delta\mu_0^2} is fed to the cost function as a vector, thus the function should vectorised with respect to this argument. The default function looks like this:
+where \eqn{c_{o}}{c_o} is the total OOC cost, \eqn{ c_{ob}}{c_ob} is the base OOC cost (even without shift), \eqn{c_{os}}{c_os} is the shift-scaling cost and \eqn{A^2(v)}{A^2(v)} is the squared distance from the target value. This latter part is defined like this because a Taguchi-type loss function is used. This \eqn{A^2(v)}{A^2(v)} incorporates the distances (the base of the losses) incurred not just at the time of the sampling, but also between samplings (hence it dependens on h). Even if the user defines a custom cost function for the OOC cost, this \eqn{A^2(v)}{A^2(v)} term must be included, as a closed form solution has been developed for the calculation of the squared distances in case of exponential shifts, considerably decreasing run times. Thus the arguments of the OOC cost function should look like this: function(\eqn{A^2(v)}{A^2(v)}, other parameters contained in a vector). \eqn{A^2(v)}{A^2(v)} is fed to the cost function as a vector, thus the function should vectorised with respect to this argument. The default function looks like this:
 
 \preformatted{
 cofun_default	<-	function(sqmudist,coparams)
@@ -156,10 +159,9 @@ cofun_default	<-	function(sqmudist,coparams)
   co		<-	cob + cos*sqmudist
   return(co)
 }
-cofun_default	<-	Vectorize(cofun_default,"sqmudist")
 }
 
-The default \code{vcofun} also uses a Taguchi-type loss function and has identical parts and requirements as \code{cofun}. The final standard deviation itself is calculated using the Total Law of Variance. The default \code{vcofun} is:
+The default \code{vcofun} also uses a Taguchi-type loss function and has identical parts and requirements as \code{cofun}. The final standard deviation itself is calculated using the law of total variance. The default \code{vcofun} is:
 
 \preformatted{
 vcofun_default	<-	function(sqmudist,vcoparams)
@@ -170,14 +172,13 @@ vcofun_default	<-	function(sqmudist,vcoparams)
   vco		<-	vcob + vcos*sqmudist
   return(vco)
 }
-vcofun_default	<-	Vectorize(vcofun_default,"sqmudist")
 }
 
 The defaults for the repair cost and cost variance are simple linear functions. For \code{crfun} it is
 
-\deqn{c_{r} = c_{rb} + c_{rs} \Delta\mu_0,}{c_r = c_rb + c_rs \Delta\mu_0,}
+\deqn{c_{r} = c_{rb} + c_{rs} v,}{c_r = c_rb + c_rs v,}
 
-where the notation are the same as before and "r" denotes repair. A custom function can be defined more freely here, but the first argument should be \eqn{\Delta\mu_0}{\Delta\mu_0} and the second a vector of further parameters.
+where the notation are the same as before and "r" denotes repair. A custom function can be defined more freely here, but the first argument should be \eqn{v}{v} and the second a vector of further parameters.
 
 The default function are:
 
@@ -190,7 +191,6 @@ crfun_default	<-	function(mudist,crparams)
   cr		<-	crb + crs*mudist
   return(cr)
 }
-crfun_default	<-	Vectorize(crfun_default,"mudist")
 }
 
 \preformatted{
@@ -202,7 +202,6 @@ vcrfun_default	<-	function(mudist,vcrparams)
   vcr		<-	vcrb + vcrs*mudist;
   return(vcr)
 }
-vcrfun_default	<-	Vectorize(vcrfun_default,"mudist")
 }
 
 }
@@ -245,7 +244,7 @@ parall	    <-  list(cl=makeCluster(num_workers), forward=FALSE, loginfo=TRUE)
 
 #Fixed shift size (essentially Duncan's cycle model) - no optimisation
 res <-  Markovchart(h=1, k=1, shiftfun="deg", sigma=1, s=0.2, delta=2.5, cs=1, crparams=20,
-                    coparams=50, COST="yes", lower = c(0.01,0.01), upper = c(5,5))
+                    coparams=50, COST="yes")
 res
 \donttest{
 #Fixed shift size (essentially Duncan's cycle model) - with optimisation
@@ -282,8 +281,9 @@ res <-  Markovchart(h=1, k=1, shiftfun="exp", sigma=1,s=0.2, delta=2, RanRep=TRU
 		    vcrparams=c(50000,-600000,1.5), p=0.9, Vd=30, V=18, parallel_opt=parall)
 res
 \donttest{
-#Exponential-geometric mixture shift - no optimisation - custom repair variance function
-vcrfun	<-	function(mudist,vcrparams)
+#Exponential-geometric mixture shift - no optimisation -
+#random sampling - custom repair variance function
+vcrfun_new	<-	function(mudist,vcrparams)
 {
   mudist=mudist
   vcrb=vcrparams[1]
@@ -293,12 +293,15 @@ vcrfun	<-	function(mudist,vcrparams)
   vcr		<-	vcrb + vcrs/(mudist + vcrs2)
   return(vcr)
 }
-vcrfun	<-	Vectorize(vcrfun,"mudist")
 
-res <-  Markovchart(h=1, k=2, shiftfun="exp-geo", sigma=1, s=0.2, delta=2, probmix=0.3,
-                    probnbin=0.2, disj=1, RanRep=TRUE, alpha=1, beta=3, COST="yes", cs=1,
-                    coparams=c(10,3), crparams=c(1,2), vcoparams=c(8000,100), vcrfun=vcrfun,
-                    vcrparams=c(50000,-600000,1.5), p=0.9, Vd=30, V=18)
+res <- Markovchart(h=1.5, k=2, shiftfun='exp-geo', sigma=1, s=0.2,
+                   delta=1.2, probmix=0.7, probnbin=0.8, disj=2,
+                   RanRep=TRUE, alpha=1, beta=3, RanSam=TRUE,
+                   StateDep=TRUE, a=1, b=15, COST='yes', cs=1,
+                   coparams=c(10,6), crparams=c(20,3),
+                   vcoparams=c(10000,100), vcrfun=vcrfun_new,
+                   vcrparams=c(50000,-600000,1.5), p=0.9,
+                   Vd=100, V=8)
 res
 
 #Exponential shift - no optimisation  - vectorised

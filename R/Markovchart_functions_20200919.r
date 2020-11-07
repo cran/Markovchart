@@ -135,8 +135,8 @@ print.Markov_chart <- function(x,...) {
 
 #MAIN FUNCTION
 
-costfunexp	<-	function(fp,sigma,s,delta,RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,a=NULL,b=NULL,StateDep=FALSE,q=NULL,z=NULL,p=1,Vd=100,V,Qparam=30,COST=c("no","yes","optim"),
-ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_default,crparams=NULL,vcofun=vcofun_default,vcoparams=c(0,0),vcrfun=vcrfun_default,vcrparams=c(0,0),qu0=qu0_exp.,qu=qu_exp.,jloop=jloop.)
+costfunexp	<-	function(fp,sigma,s,delta,RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,p=1,Vd=100,V,Qparam=30,COST=c("no","yes","optim"),
+ALL=TRUE,constantr=FALSE,ooc_rep=0,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_default,crparams=NULL,vcofun=vcofun_default,vcoparams=c(0,0),vcrfun=vcrfun_default,vcrparams=c(0,0),qu0=qu0_exp.,qu=qu_exp.,jloop=jloop.)
 {
 	#PARAMETERS
 	h=fp[1]					#(Prescribed) time between samplings
@@ -252,7 +252,7 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 	{
 		if(StateDep)
 		{
-			viv	<-	pbeta((1:Vd)/(Vd+1)-1/(2*(Vd+1)),a/h,b)
+			viv	<-	pbeta(((1:Vd)-1/2)/Vd,a/h,b)
 		} else
 		{
 			viv	<-	rep(1/(1+exp(-q*(h-z))), Vd)
@@ -301,15 +301,13 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 	
 		cr			<-	crfun(int,crparams)
 		cr[cr<0]	<-	0
-		cr			<-	c(cr[1],cr[1],cr[2:Vd],cr[2:Vd])
+		cr			<-	c(cr[1]*ooc_rep,cr[1],cr[2:Vd],cr[2:Vd]*ooc_rep)
 		vcr			<-	vcrfun(int,vcrparams)
 		vcr[vcr<0]	<-	0
-		vcr			<-	c(vcr[1],vcr[1],vcr[2:Vd],vcr[2:Vd])
+		vcr			<-	c(vcr[1]*ooc_rep,vcr[1],vcr[2:Vd],vcr[2:Vd]*ooc_rep)
 		if(!constantr)
 		{
-			cr[-(3:(Vd+1))]		<-	0
 			cr					<-	cr/h
-			vcr[-(3:(Vd+1))]	<-	0
 			vcr					<-	vcr/h^2
 		}
 		co			<-	cofun(Averages,coparams)
@@ -318,13 +316,18 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 		
 		values		<-	(cs*(1/h)*viv) + co + cr
 		if(sum(values<0)>0)	warning("Negative cost(s) were calculated from the given cost function and parameters. This implies income instead of expenses.")
+		
 		varvec		<-	vco + vcr
+		if(sum(varvec==Inf)>0){
+			varvec[varvec==Inf]	<-	max(varvec[varvec!=Inf])
+			warning("Infinite repair/out-of-control cost variance was calculated. Substituting with the second largest variance in the vector.")
+		}
 		
 		#PROCESS VARIANCE
 		VARC				<-	sum(values^2*statd)-sum(values*statd)^2
 		if(VARC<0) {
 			VARC	<-	0
-			warning("Negative process variance was estimated, check the model parameters")
+			warning("Negative process variance was estimated, check the model parameters.")
 		}
 		#TOTAL VARIANCE
 		ALLSDC	<-	sqrt(sum(varvec * statd) + VARC)
@@ -339,7 +342,7 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 	
 		######
 		
-		results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*distance_dist),sum(co*statd)))),Parameters=as.data.frame(t(fp)),Stationary_distribution=statd)
+		results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),Parameters=as.data.frame(t(fp)),Stationary_distribution=statd)
 		colnames(results[[1]])	<-	c("G-value","Expected cost (C)","Total cost std. dev.","Cost std. dev. due to process var.","Second process moment","Third process moment","Fourth process moment")
 		colnames(results[[2]])	<-	c("Sampling cost","Repair cost","OOC cost")
 		colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
@@ -350,7 +353,7 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 	} else 		return(statd)
 }
 
-costfunexpgeo	<-	function(fp,sigma,s,delta,probmix=1,probnbin=0.5,disj=1,RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,a=NULL,b=NULL,StateDep=FALSE,q=NULL,z=NULL,p=1,Vd=100,V,Qparam=30,COST=c("no","yes","optim"),
+costfunexpgeo	<-	function(fp,sigma,s,delta,probmix=1,probnbin=0.5,disj=1,RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,p=1,Vd=100,V,Qparam=30,COST=c("no","yes","optim"),
 ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_default,crparams=NULL,vcofun=vcofun_default,vcoparams=c(0,0),vcrfun=vcrfun_default,vcrparams=c(0,0),qu0=qu0_mix.,qu=qu_mix.,jloop=jloop.)
 {
 	#PARAMETERS
@@ -471,7 +474,7 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 	{
 		if(StateDep)
 		{
-			viv	<-	pbeta((1:Vd)/(Vd+1)-1/(2*(Vd+1)),a/h,b)
+			viv	<-	pbeta(((1:Vd)-1/2)/Vd,a/h,b)
 		} else
 		{
 			viv	<-	rep(1/(1+exp(-q*(h-z))), Vd)
@@ -554,13 +557,18 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 		
 		values		<-	(cs*(1/h)*viv) + co + cr
 		if(sum(values<0)>0)	warning("Negative cost(s) were calculated from the given cost function and parameters. This implies income instead of expenses.")
+		
 		varvec		<-	vco + vcr
+		if(sum(varvec==Inf)>0){
+			varvec[varvec==Inf]	<-	max(varvec[varvec!=Inf])
+			warning("Infinite repair/out-of-control cost variance was calculated. Substituting with the second largest variance in the vector.")
+		}
 		
 		#PROCESS VARIANCE
 		VARC				<-	sum(values^2*statd)-sum(values*statd)^2
 		if(VARC<0) {
 			VARC	<-	0
-			warning("Negative process variance was estimated, check the model parameters")
+			warning("Negative process variance was estimated, check the model parameters.")
 		}
 		#TOTAL VARIANCE
 		ALLSDC	<-	sqrt(sum(varvec * statd) + VARC)
@@ -575,7 +583,7 @@ ALL=TRUE,constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_d
 	
 		######
 		
-		results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*distance_dist),sum(co*statd)))),Parameters=as.data.frame(t(fp)),Stationary_distribution=statd)
+		results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),Parameters=as.data.frame(t(fp)),Stationary_distribution=statd)
 		colnames(results[[1]])	<-	c("G-value","Expected cost (C)","Total cost std. dev.","Cost std. dev. due to process var.","Second process moment","Third process moment","Fourth process moment")
 		colnames(results[[2]])	<-	c("Sampling cost","Repair cost","OOC cost")
 		colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
@@ -624,7 +632,7 @@ costfundeg	<-	function(fp,sigma,s,delta,cs=NULL,crparams=NULL,cf=crparams,copara
 		VARC				<-	sum(values^2*statd)-sum(values*statd)^2
 		if(VARC<0) {
 			VARC	<-	0
-			warning("Negative process variance was estimated, check the model parameters")
+			warning("Negative process variance was estimated, check the model parameters.")
 		}
 	
 		#AVERAGE COST
@@ -638,7 +646,7 @@ costfundeg	<-	function(fp,sigma,s,delta,cs=NULL,crparams=NULL,cf=crparams,copara
 		
 		results					<-	list(Results=as.data.frame(t(c(G,EC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,statd[2]*(cf/h),statd[3]*coparams,statd[4]*(coparams*B+crparams/h)))),Parameters=as.data.frame(t(fp)),Stationary_distribution=statd)
 		colnames(results[[1]])	<-	c("G-value","Expected cost (C)","Cost std. dev. due to process var.","Second process moment","Third process moment","Fourth process moment")
-		colnames(results[[2]])	<-	c("In-control cost","Sampling cost","Repair cost","OOC cost")
+		colnames(results[[2]])	<-	c("In-control cost","False-alarm cost","Out-of-control cost","True-alarm cost")
 		colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
 		class(results)			<-	c("Markov_chart", class(results))
 	
@@ -649,8 +657,8 @@ costfundeg	<-	function(fp,sigma,s,delta,cs=NULL,crparams=NULL,cf=crparams,copara
 
 
 Markovchart	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probmix=0.5,probnbin=0.5,disj=1,
-						 RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,a=NULL,b=NULL,StateDep=TRUE,q=NULL,z=NULL,p=1,Vd=50,V,Qparam=25,COST=c("no","yes","optim"),
-						 constantr=FALSE,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_default,crparams=NULL,
+						 RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,p=1,Vd=50,V,Qparam=25,COST=c("no","yes","optim"),
+						 constantr=FALSE,ooc_rep=0,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_default,crparams=NULL,
 						 cf=crparams, vcofun=vcofun_default,vcoparams=c(0,0),vcrfun=vcrfun_default,vcrparams=c(0,0),
 						 method=c("L-BFGS-B","Nelder-Mead","BFGS","CG","SANN","Brent"),parallel_opt=NULL,silent=TRUE,...)
 {
@@ -681,7 +689,7 @@ Markovchart	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,prob
 							foreach(j=k, .combine='rbind') %dopar%{
 								c(i,j,costfunexp(fp=c(i,j),
 											sigma=sigma,s=s,delta=delta,RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,a=a,b=b,COST="yes",
-											StateDep=StateDep,q=q,z=z,constantr=constantr,cs=cs,coparams=coparams,cofun=cofun,crfun=crfun,crparams=crparams,
+											StateDep=StateDep,q=q,z=z,constantr=constantr,ooc_rep=ooc_rep,cs=cs,coparams=coparams,cofun=cofun,crfun=crfun,crparams=crparams,
 											vcofun=vcofun, vcoparams=vcoparams,vcrfun=vcrfun,vcrparams=vcrparams,p=p,Vd=Vd,V=V,
 											Qparam=Qparam,ALL=FALSE)
 									)
@@ -721,20 +729,20 @@ Markovchart	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,prob
 				if(is.null(parallel_opt))	parallel_opt	<-	list(cl=makeCluster(max(c(detectCores()-1,1))),forward=FALSE,loginfo=TRUE)
 				res_optim	<-	optimParallel(par=c(h,k), fn=costfunexp, gr=gr, lower=lower, upper=upper, method=method, control=control,
 											hessian=hessian, parallel=parallel_opt, COST="yes", qu0=qu0_exp.,qu=qu_exp.,jloop=jloop.,sigma=sigma,s=s,delta=delta,
-											RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,a=a,b=b, StateDep=StateDep,q=q,z=z,constantr=constantr,cs=cs,cofun=cofun,
+											RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,a=a,b=b, StateDep=StateDep,q=q,z=z,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
 											coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
 											vcrfun=vcrfun,vcrparams=vcrparams,p=p,Vd=Vd,V=V,Qparam=Qparam,ALL=FALSE)
 				stopCluster(parallel_opt$cl)
 				
 				res			<-	costfunexp(fp=res_optim$par,
 											sigma=sigma,s=s,delta=delta,RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,a=a,b=b,COST="yes",
-											StateDep=StateDep,q=q,z=z,constantr=constantr,cs=cs,coparams=coparams,cofun=cofun,crfun=crfun,crparams=crparams,
+											StateDep=StateDep,q=q,z=z,constantr=constantr,ooc_rep=ooc_rep,cs=cs,coparams=coparams,cofun=cofun,crfun=crfun,crparams=crparams,
 											vcofun=vcofun, vcoparams=vcoparams,vcrfun=vcrfun,vcrparams=vcrparams,p=p,Vd=Vd,V=V,
 											Qparam=Qparam,ALL=TRUE)
 			}	else {
 				res			<-	costfunexp(fp=c(h,k),
 											sigma=sigma,s=s,delta=delta,RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,a=a,b=b,COST=COST,
-											StateDep=StateDep,q=q,z=z,constantr=constantr,cs=cs,coparams=coparams,cofun=cofun,crfun=crfun,crparams=crparams,
+											StateDep=StateDep,q=q,z=z,constantr=constantr,ooc_rep=ooc_rep,cs=cs,coparams=coparams,cofun=cofun,crfun=crfun,crparams=crparams,
 											vcofun=vcofun, vcoparams=vcoparams,vcrfun=vcrfun,vcrparams=vcrparams,p=p,Vd=Vd,V=V,
 											Qparam=Qparam,ALL=TRUE)
 			}
@@ -873,7 +881,7 @@ Markovchart	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,prob
 
 #CONTOUR PLOT
 
-Markovcontour	<-	function(Gmtx,xlab="Time between samplings",ylab="Critical value",low="white",mid="#999999",high="black",colour="white",name="G-value per \nunit time")
+Markovcontour	<-	function(Gmtx,xlab="Time between samplings",ylab="Critical value",low="white",mid="#999999",high="black",colour="white",name=expression(atop(italic("G")*-value~per, unit~time)))
 {
 	if(class(Gmtx)!="data.frame")	stop("Gmtx should be a data.frame with three columns (preferably created by the Markovchart function): time between samplings, critical value and the weighted mean of the expected cost and the cost standard deviation.")
 	if(dim(Gmtx)[2]!=3)				stop("Gmtx should be a data.frame with three columns (preferably created by the Markovchart function).")
@@ -883,32 +891,40 @@ Markovcontour	<-	function(Gmtx,xlab="Time between samplings",ylab="Critical valu
 		geom_raster(aes(fill = value), interpolate=TRUE) + 
 		scale_fill_gradient2(low=low, mid=mid, high=high, midpoint=median(Gmtx$value), name=name) + 
 		geom_contour(colour = colour) + 
-		geom_text_contour(size = 3.5, stroke = 0.1) + 
+		geom_text_contour(size = 3.5, stroke = 0.1, breaks = pretty(Gmtx[,"value"],10)) + 
 		xlab(xlab) +
 		ylab(ylab) +
 		theme_minimal()
 }
 
 
+
 #SIMULATION
 
-Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,probmix=1,probnbin=0.5,RanRep=FALSE,
-						 alpha=NULL,beta=NULL,RanSam=FALSE,a=NULL,b=NULL,V)
+Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,probmix=1,probnbin=0.5,disj=1,RanRep=FALSE,
+						 alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,detail=100,Vd=50,V,burnin=1)
 {
-	if(h<=0| k<0)									stop("Non-applicable h or k parameters were given. h is the time between samplings and k is the critical value. Both should be positive numbers (k is allowed to be 0, but not negative, since positive shifts are assumed).")
-	if(sigma<=0 | s<=0 | delta<=0 | V<=0)			stop("Non-applicable sigma, s, delta or V parameters were given. sigma is the process variance, s is the expected number of shifts in a sampling interval, delta is the exponential shift size parameter and V is the maximum distance from the target value taken into account. These should all be positive numbers.")
-	if(RanRep & (is.null(alpha) | is.null(beta))) 	stop("Parameters alpha or beta are missing. If RanRep=TRUE, then the beta distribution parameters (alpha and beta) must be given.")
-	if(RanSam & (is.null(a) | is.null(b)))			stop("Parameters a or b are missing. If RanRep=TRUE, then the beta distribution parameters (a and b) must be given.")
-	if(probmix<0 | probmix>1)						stop("Invalid probmix parameter. probmix is the weight of the geometric distribution in case of exponential-geometric mixture shift distribution and should be between 0 and 1..")
-	if(probnbin<0 | probnbin>1)						stop("Invalid probnbin parameter. probnbin is the probability parameter of the geometric distribution in case of exponential-geometric mixture shift distribution and should be between 0 and 1.")
-	if(num<=0)										stop("Non-applicable num parameter was given. num is the length of the simulation measured in the number of samplings, and should be a positive integer.")
-	if(!(shiftfun=="exp" | shiftfun=="exp-geo"))	stop("shiftfun must be either exp or exp-geo.")
-	
-	num	<-	round(num)
-	
+	if(h<=0 | k<0)										stop("Non-applicable h or k parameters were given. h is the time between samplings and k is the critical value. Both should be positive numbers (k is allowed to be 0, but not negative, since positive shifts are assumed).")
+	if(sigma<=0 | s<=0 | delta<=0 | V<=0)				stop("Non-applicable sigma, s, delta or V parameters were given. sigma is the process variance, s is the expected number of shifts in a sampling interval, delta is the exponential shift size parameter and V is the maximum distance from the target value taken into account. These should all be positive numbers.")
+	if(RanRep & (is.null(alpha) | is.null(beta))) 		stop("Parameters alpha or beta are missing. If RanRep=TRUE, then the beta distribution parameters (alpha and beta) must be given.")
+	if(RanSam & StateDep & (is.null(a) | is.null(b)))	stop("Parameters a or b are missing. If RanRep=TRUE and StateDep=TRUE, then the beta distribution parameters (a and b) must be given.")
+	if(RanSam & !StateDep & (is.null(q) | is.null(z)))	stop("Parameters q or z are missing. If RanRep=TRUE and StateDep=FALSE, then the logistic function parameters (q and z) must be given.")
+	if(Vd<3)											stop("Non-applicable Vd parameter was given. This is a discretisation parameter (number of states after disretisation), which should be an integer value greater than 2.")
+	if(disj<=0)											stop("Non-applicable disj parameter was given. disj is the size of a discrete jump in case of exponential-geometric mixture shift distribution and should be a positive number.")
+	if(probmix<0 | probmix>1)							stop("Invalid probmix parameter. probmix is the weight of the geometric distribution in case of exponential-geometric mixture shift distribution and should be between 0 and 1..")
+	if(probnbin<0 | probnbin>1)							stop("Invalid probnbin parameter. probnbin is the probability parameter of the geometric distribution in case of exponential-geometric mixture shift distribution and should be between 0 and 1.")
+	if(num<=0)											stop("Non-applicable num parameter was given. num is the length of the simulation measured in the number of samplings, and should be a positive integer.")
+	if(!(shiftfun=="exp" | shiftfun=="exp-geo"))		stop("shiftfun must be either exp or exp-geo.")
+	if(detail<2)										stop("Invalid detail parameter was given. detail is the number of data points simulated within a sampling interval and should be an integer greater than one.")
+	if(burnin<0 | burnin>=num)							stop("Invalid burnin parameter was given. burnin is the number of samplings deemed as a burn-in period and should be an integer greater than one but less than the number of the total simulated sampling intervals.")
+
+	num		<-	round(num)
+	detail	<-	round(detail)
+	burnin	<-	round(burnin)
+
 	if(shiftfun=="exp")
 	{
-		#EXP simulation is creating 100 data points per sampling interval
+		#EXP simulation is creating detail number data points per sampling interval
 		eventvec	<-	"start"
 		xbase		<-	0
 		x			<-	NULL
@@ -920,23 +936,31 @@ Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,prob
 				if(eventvec[length(eventvec)]=="alarm")			xbase		<-	x[length(x)]*rbeta(1,alpha,beta) 
 			}
 			
-			stvec		<-	rexp(h*s*100,s)
+			stvec		<-	rexp(h*s*detail,s)
 			shifttimes	<-	round(cumsum(stvec)[cumsum(stvec)<h],digits=2)
 			shiftsizes 	<-	cumsum(rexp(length(shifttimes),1/delta))
 			if(length(shifttimes)!=0)
 			{
 				onetr	<-	NULL
-				onetr	<-	c(onetr, rep(xbase,round(shifttimes[1]*100)))
+				onetr	<-	c(onetr, rep(xbase,round(shifttimes[1]*detail)))
 				for (j in 1:length(shifttimes))
 				{
-					if(j!=length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((shifttimes[j+1]-shifttimes[j])*100)))
-					if(j==length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((h-shifttimes[j])*100)))
+					if(j!=length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((shifttimes[j+1]-shifttimes[j])*detail)))
+					if(j==length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((h-shifttimes[j])*detail)))
 				}
 				x	<-	c(x,onetr)
-			}	else	{x	<-	c(x,rep(xbase,round(h*100)))}
+			}	else	{x	<-	c(x,rep(xbase,round(h*detail)))}
 			
-			if(RanSam) probab	<-	pbeta(x[length(x)]/V,a/h,b) else{
-				probab	<-	1
+			if(RanSam) 
+			{
+				if(StateDep)
+				{
+					probab	<-	pbeta(x[length(x)]/V,a/h,b)
+				}else{
+					probab	<-	1/(1+exp(-q*(x[length(x)]-z)))
+				}
+			}else{
+					probab	<-	1
 			}
 			
 			if(rbinom(n=1, size=1, prob=probab)==1)
@@ -951,7 +975,7 @@ Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,prob
 	
 	if(shiftfun=="exp-geo")
 	{
-		#EXP-GEO simulation is creating 100 data points per sampling interval
+		#EXP-GEO simulation is creating detail number data points per sampling interval
 		eventvec	<-	"start"
 		xbase		<-	0
 		x			<-	NULL
@@ -963,30 +987,38 @@ Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,prob
 				if(eventvec[length(eventvec)]=="alarm")			xbase		<-	x[length(x)]*rbeta(1,alpha,beta) 
 			}
 			
-			stvec		<-	rexp(h*s*100,s)
+			stvec		<-	rexp(h*s*detail,s)
 			shifttimes	<-	round(cumsum(stvec)[cumsum(stvec)<h],digits=2)
 			if(length(shifttimes)!=0)
 			{
 			pattern		<-	rbinom(length(shifttimes),1,probmix)
 			exps		<-	rexp(sum(pattern==0),1/delta)
-			geoms		<-	rgeom(sum(pattern==1),probnbin)+1
+			geoms		<-	disj*(rgeom(sum(pattern==1),probnbin)+1)
 			shifts		<-	rep(0,length(shifttimes))
 			shifts[pattern==0]	<-	exps
 			shifts[pattern==1]	<-	geoms
 			shiftsizes 	<-	cumsum(shifts)
 		
 				onetr	<-	NULL
-				onetr	<-	c(onetr, rep(xbase,round(shifttimes[1]*100)))
+				onetr	<-	c(onetr, rep(xbase,round(shifttimes[1]*detail)))
 				for (j in 1:length(shifttimes))
 				{
-					if(j!=length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((shifttimes[j+1]-shifttimes[j])*100)))
-					if(j==length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((h-shifttimes[j])*100)))
+					if(j!=length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((shifttimes[j+1]-shifttimes[j])*detail)))
+					if(j==length(shifttimes))	onetr	<-	c(onetr, rep(xbase+shiftsizes[j],round((h-shifttimes[j])*detail)))
 				}
 				x	<-	c(x,onetr)
-			}	else	{x	<-	c(x,rep(xbase,round(h*100)))}
+			}	else	{x	<-	c(x,rep(xbase,round(h*detail)))}
 			
-			if(RanSam) probab	<-	pbeta(x[length(x)]/V,a/h,b) else{
-				probab	<-	1
+			if(RanSam) 
+			{
+				if(StateDep)
+				{
+					probab	<-	pbeta(x[length(x)]/V,a/h,b)
+				}else{
+					probab	<-	1/(1+exp(-q*(x[length(x)]-z)))
+				}
+			}else{
+					probab	<-	1
 			}
 		
 			if(rbinom(n=1, size=1, prob=probab)==1)
@@ -999,7 +1031,26 @@ Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,prob
 		}
 	}
 	
-	res	<-	list(Value_at_samplings=x[seq(1,num*100,100)],Sampling_event=eventvec,Simulation_data=x)
+	
+	burntin			<-	x[seq(detail,num*detail,detail)][(burnin+1):length(x[seq(detail,num*detail,detail)])]
+	burntevent		<-	eventvec[(burnin+1):length(eventvec)]
+	int				<-	seq(0,V,by=(V/(Vd-1)))
+	discr_sim_alarm	<-	NULL
+	discr_sim_ooc	<-	NULL
+	for (i in 1:(length(int)-1))
+	{
+		discr_sim_alarm	<-	c(discr_sim_alarm, length(burntin[burntin>int[i] & burntin<=int[i+1] & burntevent=="alarm"])/length(burntin))
+		discr_sim_ooc	<-	c(discr_sim_ooc,   length(burntin[burntin>int[i] & burntin<=int[i+1] & burntevent!="alarm"])/length(burntin))
+	}
+	discr_sim_alarm[length(discr_sim_alarm)]	<-	length(burntin[burntin>int[length(int)-1] & burntevent=="alarm"])/length(burntin)
+	discr_sim_ooc[length(discr_sim_ooc)]		<-	length(burntin[burntin>int[length(int)-1] & burntevent=="alarm"])/length(burntin)
+	discr_sim									<-	c(sum(burntin==0 & burntevent!="alarm")/length(burntin),sum(burntin==0 & burntevent=="alarm")/length(burntin),discr_sim_alarm,discr_sim_ooc)
+	
+	int2				<-	seq(0,V,by=(V/(Vd-1))) + (V/(Vd-1))*0.5
+	names(discr_sim)	<-	c("In-control","False-alarm",paste("Out-of-control",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
+
+	
+	res	<-	list(Value_at_samplings=x[seq(detail,num*detail,detail)], Sampling_event=eventvec, Simulation_data=x, Stationary_distribution=discr_sim)
 	return(res)
 }
 

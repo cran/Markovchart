@@ -10,7 +10,7 @@ Convenience function for plotting G-values in a contour plot as the function of 
 \usage{
 Markovcontour(Gmtx, xlab = "Time between samplings", ylab = "Critical value",
               low = "white", mid = "#999999", high = "black", colour = "white",
-              name = "G-value per \nunit time")
+              name = expression(atop(italic("G")*-value~per, unit~time)))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -27,7 +27,7 @@ A title for the x axis.
 Colour for the low end of the gradient.
 }
   \item{mid}{
-Colour for mid point.
+Colour for the midpoint.
 }
   \item{high}{
 Colour for the high end of the gradient.
