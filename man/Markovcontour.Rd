@@ -66,8 +66,8 @@ The plot itself is made using the package \code{ggplot2} by Hadley Wickham et al
 
 \examples{
 \donttest{
-#Defining parallel_opt parallel settings
-#parallel_opt can also be left empty to be defined automatically by the function
+#Defining parallel_opt parallel settings.
+#parallel_opt can also be left empty to be defined automatically by the function.
 require(parallel)
 num_workers <- min(c(detectCores(),2))
 

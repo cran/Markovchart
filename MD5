@@ -1,6 +1,6 @@
-85ed49703a1d5661bdf9f80120334258 *DESCRIPTION
-18db20e58661470194a567823c975fc6 *NAMESPACE
-5127ceb581377279bc9e2c02afa3b328 *R/Markovchart_functions_20200919.r
-5dcf2ee10aefa95de89f0b73883d7c3e *man/Markovchart.Rd
-9a7ffb7f65cdb8ae3adc1539f8f54d17 *man/Markovcontour.Rd
-21279b26bd2e3886e8685c25f5724caa *man/Markovsim.Rd
+f0464a28cd14625b027a57beeaedb1af *DESCRIPTION
+a65e6f62eed6709ec759fede766ec2c2 *NAMESPACE
+a9a202b1c62f39493485d66af0022dd9 *R/Markovchart_functions_20201216.r
+465b8efe3d22eadb18049e4b01c1033b *man/Markovchart.Rd
+36122cb9abf7e8fefa2083af28ecde5f *man/Markovcontour.Rd
+82587dd456b7fc719ee324f1483af08f *man/Markovsim.Rd

@@ -212,7 +212,7 @@ The probabilities in the stationary distribution are labeled. If \code{shiftfun}
 
 If either \code{h} or \code{k} have length greater than 1, then the G-value (weighted average of average cost and cost standard deviation) is calculated for all given values without optimisation. The value of the function in this case is a data frame with \code{length(h)*length(k)} number of rows and three columns for \code{h}, \code{k} and the G-value.
 
-If \code{h} and \code{k} are both of length 1 and costs are calculated (\code{COST}="yes" or "optim"), then the value of the function is a "Markov_chart" object, which is a list of length 4, detailing the properties of the control chart setup.
+If \code{h} and \code{k} are both of length 1 and costs are calculated (\code{COST}="yes" or "optim"), then the value of the function is a \code{Markov_chart} object, which is a list of length 4, detailing the properties of the control chart setup.
 \item{Results }{Vector of G-value, expected cost, cost standard deviation and further process moments. Note that these further moments only take into account the process variation (i.e. the standard deviation), while the "Total cost std. dev." takes into account all sources of variance (e.g. the different costs that can occur due to being out-of-control).}
 \item{Subcosts }{Vector of sub-costs that are parts of the total expected cost.}
 \item{Parameters }{A vector that contains the time between samplings (\code{h}) and critical value (\code{k}) which was used in the control chart setup.}
@@ -235,46 +235,47 @@ Balazs Dobi and Andras Zempleni
 }
 
 \examples{
-#Defining parallel_opt parallel settings
-#parallel_opt can also be left empty to be defined automatically by the function
+#Defining parallel_opt parallel settings.
+#parallel_opt can also be left empty to be defined automatically by the function.
 require(parallel)
 num_workers <-  min(c(detectCores(),2))
 parall	    <-  list(cl=makeCluster(num_workers), forward=FALSE, loginfo=TRUE)
 
 
-#Fixed shift size (essentially Duncan's cycle model) - no optimisation
+#Fixed shift size (essentially Duncan's cycle model) - no optimisation.
 res <-  Markovchart(h=1, k=1, shiftfun="deg", sigma=1, s=0.2, delta=2.5, cs=1, crparams=20,
                     coparams=50, COST="yes")
 res
 \donttest{
-#Fixed shift size (essentially Duncan's cycle model) - with optimisation
+#Fixed shift size (essentially Duncan's cycle model) - with optimisation.
 res <-  Markovchart(h=1, k=1, shiftfun="deg", sigma=1, s=0.2, delta=2.5, cs=1, crparams=20,
                     coparams=50, COST="optim", lower = c(0.01,0.01), upper = c(5,5),
                     parallel_opt=parall)
 res
 
-#Exponential shift - perfect repair - no optimisation - default cost functions - no cost calculation
+#Exponential shift - perfect repair - no optimisation -
+#default cost functions - no cost calculation.
 res <-  Markovchart(h=1, k=1, shiftfun="exp", sigma=1,s=0.2, delta=2, RanRep=FALSE, COST="no",
 		    cs=1, coparams=c(10,3), crparams=c(1,2), vcoparams=c(8000,100),
 		    vcrparams=c(50000,-600000,1.5), p=0.9, Vd=30, V=18)
 res
-#Notice how the In-control and the False-alarm states have non-zero probabilities
-#If the repair is random (RanRep=TRUE), then these states have zero probability
+#Notice how the In-control and the False-alarm states have non-zero probabilities.
+#If the repair is random (RanRep=TRUE), then these states have zero probability.
 head(res)
 
-#Exponential shift - no optimisation - default cost functions - no cost calculation
+#Exponential shift - no optimisation - default cost functions - no cost calculation.
 res <-  Markovchart(h=1, k=1, shiftfun="exp", sigma=1,s=0.2, delta=2, RanRep=TRUE, alpha=1, beta=3,
                     COST="no", cs=1, coparams=c(10,3), crparams=c(1,2), vcoparams=c(8000,100),
 		    vcrparams=c(50000,-600000,1.5), p=0.9, Vd=30, V=18)
 res
 
-#Exponential shift - no optimisation - default cost functions
+#Exponential shift - no optimisation - default cost functions.
 res <-  Markovchart(h=1, k=1, shiftfun="exp", sigma=1,s=0.2, delta=2, RanRep=TRUE, alpha=1, beta=3,
                     COST="yes", cs=1, coparams=c(10,3), crparams=c(1,2), vcoparams=c(8000,100),
 		    vcrparams=c(50000,-600000,1.5), p=0.9, Vd=30, V=18)
 res
 }
-#Exponential shift - with optimisation - default cost functions
+#Exponential shift - with optimisation - default cost functions.
 parall	    <-  list(cl=makeCluster(num_workers), forward=FALSE, loginfo=TRUE)
 res <-  Markovchart(h=1, k=1, shiftfun="exp", sigma=1,s=0.2, delta=2, RanRep=TRUE, alpha=1, beta=3,
                     COST="optim", cs=1, coparams=c(10,3), crparams=c(1,2), vcoparams=c(8000,100),
@@ -282,7 +283,7 @@ res <-  Markovchart(h=1, k=1, shiftfun="exp", sigma=1,s=0.2, delta=2, RanRep=TRU
 res
 \donttest{
 #Exponential-geometric mixture shift - no optimisation -
-#random sampling - custom repair variance function
+#random sampling - custom repair variance function.
 vcrfun_new	<-	function(mudist,vcrparams)
 {
   mudist=mudist
@@ -304,7 +305,7 @@ res <- Markovchart(h=1.5, k=2, shiftfun='exp-geo', sigma=1, s=0.2,
                    Vd=100, V=8)
 res
 
-#Exponential shift - no optimisation  - vectorised
+#Exponential shift - no optimisation  - vectorised.
 parall	    <-  list(cl=makeCluster(num_workers), forward=FALSE, loginfo=TRUE)
 Gmtx	<-	Markovchart(h=seq(1,10,by=(10-1)/5),k=seq(0.1,5,by=(5-0.1)/5), shiftfun="exp",
                             sigma=1,s=0.2, delta=2, RanRep=TRUE, alpha=1, beta=3, COST="yes",

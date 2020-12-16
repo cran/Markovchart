@@ -133,6 +133,10 @@ print.Markov_chart <- function(x,...) {
 	print(x[1:3],...)
 }
 
+print.Markov_sim <- function(x,...) {
+	print(str(x),...)
+}
+
 #MAIN FUNCTION
 
 costfunexp	<-	function(fp,sigma,s,delta,RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,p=1,Vd=100,V,Qparam=30,COST=c("no","yes","optim"),
@@ -1050,7 +1054,8 @@ Markovsim	<-	function(num=100,shiftfun=c("exp","exp-geo"),h,k,sigma,s,delta,prob
 	names(discr_sim)	<-	c("In-control","False-alarm",paste("Out-of-control",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
 
 	
-	res	<-	list(Value_at_samplings=x[seq(detail,num*detail,detail)], Sampling_event=eventvec, Simulation_data=x, Stationary_distribution=discr_sim)
+	res	        <-	list(Value_at_samplings=x[seq(detail,num*detail,detail)], Sampling_event=eventvec, Simulation_data=x, Stationary_distribution=discr_sim)
+	class(res)	<-	c("Markov_sim", class(res))
 	return(res)
 }
 

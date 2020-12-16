@@ -91,7 +91,7 @@ Numeric burn-in parameter: the number of samplings deemed as a burn-in period. S
 The simulation only includes the more complicated process and control chart cases and is meant for model checking and for situations when the exact calculation is problematic (such as low probabilities in the stationary distribution leading to rounding errors).
 }
 \value{
-A list of length 4.
+A \code{Markov_sim} object which is a list of length 4.
 \item{Value_at_samplings }{The process value at sampling.}
 \item{Sampling_event }{The event at sampling, each can either be success (there was a sampling but no alarm), alarm (sampling with alarm) or failure (no sampling occurred).}
 \item{Simulation_data }{The simulated data (distances from the target value).}
@@ -121,15 +121,15 @@ Balazs Dobi and Andras Zempleni
 simres1	<-	Markovsim(num=500, shiftfun="exp", h=1, k=1, sigma=1, s=0.2, delta=2,
                           RanRep=TRUE, alpha=1, beta=3, RanSam=TRUE, StateDep=TRUE,
                           a=0.1, b=1, V=10)
-simres1[[2]]
-hist(simres1[[1]],20,freq=FALSE)
+simres1
+hist(simres1[[1]], 20, freq=FALSE)
 
 #Simulation using exponential-geometric mixture shifts, random repair and random samling.
 simres2	<-	Markovsim(num=500, shiftfun="exp-geo", h=1, k=1, sigma=1, s=0.2, delta=2,
                           probmix=0.9, probnbin=0.6, RanRep=TRUE, alpha=1, beta=3, RanSam=TRUE,
                           StateDep=TRUE, a=0.1, b=1, V=10)
-simres2[[2]]
-hist(simres2[[1]],20,freq=FALSE)
+simres2
+hist(simres2[[1]], 20, freq=FALSE)
 }
 \keyword{Markov chain}
 \keyword{control chart}
