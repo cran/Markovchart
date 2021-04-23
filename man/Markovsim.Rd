@@ -8,7 +8,7 @@ Progression and monitoring simulation of a process with random shift size, rando
 Wrapper for simulation of processes with a Markov chain-based control chart setup. Includes methods for different shift size distributions.
 }
 \usage{
-Markovsim(num = 100, shiftfun = c("exp", "exp-geo"), h, k, sigma,
+Markovsim(shiftfun = c("exp", "exp-geo"), num = 100, h, k, sigma,
           s, delta, probmix = 1, probnbin = 0.5, disj=1,
           RanRep = FALSE, alpha = NULL, beta = NULL, RanSam = FALSE,
           StateDep = FALSE, a = NULL, b = NULL, q = NULL,
@@ -16,11 +16,11 @@ Markovsim(num = 100, shiftfun = c("exp", "exp-geo"), h, k, sigma,
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{num}{
-Integer. The number of sampling intervals simulated. This means that the time elapsed in the simulation is \code{num*h}.
-}
   \item{shiftfun}{
 A string defining the shift size distribution to be used. Must be either "exp", "exp-geo".
+}
+  \item{num}{
+Integer. The number of sampling intervals simulated. This means that the time elapsed in the simulation is \code{num*h}.
 }
   \item{h}{
 The time between samplings. Must be a positive value.
@@ -113,19 +113,19 @@ Balazs Dobi and Andras Zempleni
 }
 
 \seealso{
-\code{\link{Markovchart}}
+\code{\link{Markovstat}}
 }
 
 \examples{
 #Simulation using exponential shifts, random repair and random samling.
-simres1	<-	Markovsim(num=500, shiftfun="exp", h=1, k=1, sigma=1, s=0.2, delta=2,
+simres1	<-	Markovsim(shiftfun="exp", num=500, h=1, k=1, sigma=1, s=0.2, delta=2,
                           RanRep=TRUE, alpha=1, beta=3, RanSam=TRUE, StateDep=TRUE,
                           a=0.1, b=1, V=10)
 simres1
 hist(simres1[[1]], 20, freq=FALSE)
 
 #Simulation using exponential-geometric mixture shifts, random repair and random samling.
-simres2	<-	Markovsim(num=500, shiftfun="exp-geo", h=1, k=1, sigma=1, s=0.2, delta=2,
+simres2	<-	Markovsim(shiftfun="exp-geo", num=500, h=1, k=1, sigma=1, s=0.2, delta=2,
                           probmix=0.9, probnbin=0.6, RanRep=TRUE, alpha=1, beta=3, RanSam=TRUE,
                           StateDep=TRUE, a=0.1, b=1, V=10)
 simres2
