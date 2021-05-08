@@ -1,7 +1,7 @@
-c168bd6fcfde6223dfaca73d6e427085 *DESCRIPTION
+87addc858c6e48b02d71a8bebcf47f7c *DESCRIPTION
 205f805d9c8a4adfed2af3594a05b626 *NAMESPACE
-6b3a5a9e546dbeebb2abce8303d59df6 *R/Markovchart_functions_20210310.r
+9951ea8d1714ce711f77a17cafa6818e *R/Markovchart_functions_20210502.r
 68040a64af124a676a248b170e5915c2 *man/Markovchart.Rd
 0c8ce3e00b8cb9c2e36697e69a058f86 *man/Markovsim.Rd
-31f4be174a109d161c20d413981ac6e4 *man/Markovstat.Rd
-61ad3467095d81564148fe2189f4e1d4 *man/plot.Markov_grid.Rd
+d646826cf5bc6195b3cdd00708741d12 *man/Markovstat.Rd
+e30949b522587d52bfcc24e5abc455bc *man/plot.Markov_grid.Rd

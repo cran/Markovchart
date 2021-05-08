@@ -84,7 +84,7 @@ Integer discretisation parameter: the number of maximum events taken into accoun
 
 \value{
 The function return a list object of class \code{Markov_stationary}. The list is of length 3:
-\item{Stationary_distribution }{Stationary distribution of the Markov chain. The probabilities in the stationary distribution are labeled. If \code{shiftfun} is "deg" then the stationary distribution is always of length 4. If \code{shiftfun} is not "deg" then there are multiple out-of-control and true alarm states. These are labeled with an index and the value the state represents. If \code{shiftfun} is "deg" then the out-of-control and true alarm states are at a distance \code{delta} from the target value, and the in-control and the false alarm state are always at the target value.}
+\item{Stationary_distribution }{Stationary distribution of the Markov chain. The probabilities in the stationary distribution are labeled. If \code{shiftfun} is "deg" then the stationary distribution is always of length 4. If \code{shiftfun} is not "deg" then there are multiple out-of-control (OOC) and true alarm states. These are labeled with an index and the value the state represents. If \code{shiftfun} is "deg" then the out-of-control and true alarm states are at a distance \code{delta} from the target value, and the in-control and the false alarm state are always at the target value.}
 \item{Transition_matrix }{The transition matrix of the Markov chain. Not printed.}
 \item{Param_list }{Parameters given to the function and various technical results used by the \code{\link{Markovchart}} function. Not printed.}
 }

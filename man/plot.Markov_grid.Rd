@@ -11,8 +11,8 @@ Convenience function for plotting G-values in a contour plot as the function of 
 \method{plot}{Markov_grid}(
      x, y = expression(atop(italic("G")*-value~per, unit~time)),
      xlab = "Time between samplings", ylab = "Critical value",
-     low = "white", mid = "#999999", high = "black", colour = "white",
-     ...)
+     low = "white", mid = "#999999", high = "black",
+     colour = "white", nbreaks = 16, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -39,6 +39,9 @@ Colour for the high end of the gradient.
 }
   \item{colour}{
 Colour of the contour lines.
+}
+  \item{nbreaks}{
+Number of contour breaks. Uses \code{pretty()}, thus actual, plotted number of breaks may differ.
 }
   \item{\dots}{
 Further arguments to be passed down to \code{plot}. Mostly kept due to S3 method compatibility.

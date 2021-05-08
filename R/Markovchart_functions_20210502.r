@@ -143,7 +143,7 @@ print.Markov_sim <- function(x,...) {
 	print(str(x),...)
 }
 
-plot.Markov_grid <- function(x,y=expression(atop(italic("G")*-value~per, unit~time)),xlab="Time between samplings",ylab="Critical value",low="white",mid="#999999",high="black",colour="white",...)
+plot.Markov_grid <- function(x,y=expression(atop(italic("G")*-value~per, unit~time)),xlab="Time between samplings",ylab="Critical value",low="white",mid="#999999",high="black",colour="white",nbreaks=16,...)
 {
 	if(!inherits(x, "Markov_grid") | dim(x)[2]!=3)	stop("x should be a Markov_grid data.frame with three columns (preferably created by the Markovchart function): time between samplings, critical value and the weighted mean of the expected cost and the cost standard deviation.")
 	colnames(x)	<-	c("h","k","value")
@@ -151,8 +151,8 @@ plot.Markov_grid <- function(x,y=expression(atop(italic("G")*-value~per, unit~ti
 	ggplot(x, aes(h, k, z=value)) + 
 		geom_raster(aes(fill = value), interpolate=TRUE) + 
 		scale_fill_gradient2(low=low, mid=mid, high=high, midpoint=median(x$value), name=y) + 
-		geom_contour(colour = colour) + 
-		geom_text_contour(size = 3.5, stroke = 0.1, breaks = pretty(x[,"value"],20)) + 
+		geom_contour(colour = colour, stroke = 0.1, breaks = pretty(x[,"value"],nbreaks)) + 
+		geom_text_contour(size = 3.5, stroke = 0.1, breaks = pretty(x[,"value"],nbreaks)) + 
 		xlab(xlab) +
 		ylab(ylab) +
 		theme_minimal()
@@ -341,7 +341,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		statd			<-	eigenvec/sum(eigenvec)
 		statd[statd<0]	<-	0
 		if(RanRep==TRUE)	statd	<-	c(0,0,statd)
-		names(statd)	<-	c("In-control","False-alarm",paste("Out-of-control",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
+		names(statd)	<-	c("In-control","False-alarm",paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
 		
 		paramlist <- c(paramlist, list(mtx=mtx), list(viv=viv))
 	}
@@ -360,7 +360,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		eigenvec        <-  as.numeric(eigen(t(mx_fin))$vectors[,1])
 		statd			<-	eigenvec/sum(eigenvec)
 		statd[statd<0]	<-	0
-		names(statd)	<-	c("In-control","False-alarm","Out-of-control","True-alarm")
+		names(statd)	<-	c("In-control","False-alarm","OOC","True-alarm")
 	}
 	
 	mx_fin_full				<-	as.data.frame(mx_fin_full)
@@ -462,7 +462,7 @@ costfunexp	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,co
 	######
 	
 	results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
-	colnames(results[[1]])	<-	c("G-value","Expected cost (C)","Total cost std. dev.","Cost std. dev. due to process var.","Second process moment","Third process moment","Fourth process moment")
+	colnames(results[[1]])	<-	c("G-value","Expected cost","Total cost sd","Cost sd due to process var.","2nd process moment","3rd process moment","4th process moment")
 	colnames(results[[2]])	<-	c("Sampling cost","Repair cost","OOC cost")
 	colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
 	class(results)			<-	c("Markov_chart", class(results))
@@ -580,7 +580,7 @@ costfunexpgeo	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL
 	######
 	
 	results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
-	colnames(results[[1]])	<-	c("G-value","Expected cost (C)","Total cost std. dev.","Cost std. dev. due to process var.","Second process moment","Third process moment","Fourth process moment")
+	colnames(results[[1]])	<-	c("G-value","Expected cost","Total cost sd","Cost sd due to process var.","2nd process moment","3rd process moment","4th process moment")
 	colnames(results[[2]])	<-	c("Sampling cost","Repair cost","OOC cost")
 	colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
 	class(results)			<-	c("Markov_chart", class(results))
@@ -635,7 +635,7 @@ costfundeg	<-	function(fp=NULL,statdist,cs=NULL,crparams=NULL,cf=crparams,copara
 	G	<-	p*EC + (1-p)*sqrt(VARC)
 	
 	results					<-	list(Results=as.data.frame(t(c(G,EC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,statd[2]*(cf/h),statd[3]*coparams,statd[4]*(coparams*B+crparams/h)))),Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
-	colnames(results[[1]])	<-	c("G-value","Expected cost (C)","Cost std. dev. due to process var.","Second process moment","Third process moment","Fourth process moment")
+	colnames(results[[1]])	<-	c("G-value","Expected cost","Cost sd due to process var.","2nd process moment","3rd process moment","4th process moment")
 	colnames(results[[2]])	<-	c("In-control cost","False-alarm cost","Out-of-control cost","True-alarm cost")
 	colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
 	class(results)			<-	c("Markov_chart", class(results))
@@ -966,7 +966,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 	discr_sim									<-	c(sum(burntin==0 & burntevent!="alarm")/length(burntin),sum(burntin==0 & burntevent=="alarm")/length(burntin),discr_sim_alarm,discr_sim_ooc)
 	
 	int2				<-	seq(0,V,by=(V/(Vd-1))) + (V/(Vd-1))*0.5
-	names(discr_sim)	<-	c("In-control","False-alarm",paste("Out-of-control",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
+	names(discr_sim)	<-	c("In-control","False-alarm",paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
 
 	
 	res	        <-	list(Value_at_samplings=x[seq(detail,num*detail,detail)], Sampling_event=eventvec, Simulation_data=x, Stationary_distribution=discr_sim)
