@@ -3,6 +3,7 @@
 
 #ANCILLARY FUNCTIONS
 
+#Discretised shift size density function for exponential distribution when the starting state is at the target value
 qu0_exp.	<-	function(i,h,s,w,V,Vd,delta)
 {
 	if(i==0)	v	<-	dpois(0,s*h)
@@ -11,6 +12,7 @@ qu0_exp.	<-	function(i,h,s,w,V,Vd,delta)
 }
 qu0_exp.	<-	Vectorize(qu0_exp.,"i")
 
+#Discretised shift size density function for exponential-geomteric mixture distribution when the starting state is at the target value
 qu0_mix.	<-	function(i,h,s,N,V,Vd,rate,probmix,probnbin,disj)
 {
 	if(i==0)	v	<-	dpois(0,s*h)
@@ -19,6 +21,7 @@ qu0_mix.	<-	function(i,h,s,N,V,Vd,rate,probmix,probnbin,disj)
 }
 qu0_mix.	<-	Vectorize(qu0_mix.,"i")
 
+#Discretised shift size density function for exponential distribution when the starting state is not at the target value
 qu_exp.	<-	function(i,h,s,w,delta,int2)
 {
 	if(i==1)	v	<-	dpois(0,s*h) + sum(dpois(w,s*h)*pgamma(int2[i],w,rate=1/delta))
@@ -27,6 +30,7 @@ qu_exp.	<-	function(i,h,s,w,delta,int2)
 }
 qu_exp.	<-	Vectorize(qu_exp.,"i")
 
+#Discretised shift size density function for exponential-geomteric mixture distribution when the starting state is not at the target value
 qu_mix.	<-	function(i,h,s,N,rate,probmix,probnbin,disj,int2)
 {
 	if(i==1)	v	<-	dpois(0,s*h) + sum(dpois(N,s*h)*mixeddist(int2[i],rate,probmix,probnbin,N,disj))
@@ -35,6 +39,7 @@ qu_mix.	<-	function(i,h,s,N,rate,probmix,probnbin,disj,int2)
 }
 qu_mix.	<-	Vectorize(qu_mix.,"i")
 
+#This is essentially a for loop transformed into a vectorised function; used for the transition matrix constuction
 jloop.	<-	function(j,nov,quv,mtxvec,index)
 {
   res=as.vector(c(NA,NA))
@@ -51,7 +56,8 @@ jloop.	<-	Vectorize(jloop.,"j")
 
 roundany	<-	function(x, accuracy, fun=round){fun(x/accuracy)*accuracy}
 
-#P(gamma + negbin < z) when the number of shifts is given
+#This is used in the contonuous exponential-geomteric mixture distribution below
+#Describes P(gamma + negbin < z) when the number of shifts is given
 pgamnbin	<-	function(z,shape,rate,prob,n,disj)
 {
 	n=n
@@ -70,7 +76,7 @@ pgamnbin	<-	function(z,shape,rate,prob,n,disj)
 }
 pgamnbin	<-	Vectorize(pgamnbin,"shape")
 
-#This is the mixture distribution of the distance from mu_0 (the convolution of the mixture distribution of single shifts)
+#This is the contonuous exponential-geomteric mixture distribution (the convolution of the mixture distribution of single shifts)
 mixeddist	<-	function(z,rate,probmix,probnbin,N,disj)
 {
 	N=N
@@ -85,6 +91,7 @@ mixeddist	<-	Vectorize(mixeddist,"N")
 
 #DEFAULT COST FUNCTIONS
 
+#Repair cost
 crfun_default	<-	function(mudist,crparams)
 {
   mudist=mudist
@@ -96,6 +103,7 @@ crfun_default	<-	function(mudist,crparams)
 }
 crfun_default	<-	Vectorize(crfun_default,"mudist")
 
+#Repair cost variance
 vcrfun_default	<-	function(mudist,vcrparams)
 {
   mudist=mudist
@@ -107,6 +115,7 @@ vcrfun_default	<-	function(mudist,vcrparams)
 }
 vcrfun_default	<-	Vectorize(vcrfun_default,"mudist")
 
+#Out-of-control cost
 cofun_default	<-	function(sqmudist,coparams)
 {
   sqmudist=sqmudist
@@ -118,6 +127,7 @@ cofun_default	<-	function(sqmudist,coparams)
 }
 cofun_default	<-	Vectorize(cofun_default,"sqmudist")
 
+#Out-of-control cost variance
 vcofun_default	<-	function(sqmudist,vcoparams)
 {
   sqmudist=sqmudist
@@ -143,6 +153,7 @@ print.Markov_sim <- function(x,...) {
 	print(str(x),...)
 }
 
+#This plot method creates controur plots
 plot.Markov_grid <- function(x,y=expression(atop(italic("G")*-value~per, unit~time)),xlab="Time between samplings",ylab="Critical value",low="white",mid="#999999",high="black",colour="white",nbreaks=16,...)
 {
 	if(!inherits(x, "Markov_grid") | dim(x)[2]!=3)	stop("x should be a Markov_grid data.frame with three columns (preferably created by the Markovchart function): time between samplings, critical value and the weighted mean of the expected cost and the cost standard deviation.")
@@ -151,7 +162,7 @@ plot.Markov_grid <- function(x,y=expression(atop(italic("G")*-value~per, unit~ti
 	ggplot(x, aes(h, k, z=value)) + 
 		geom_raster(aes(fill = value), interpolate=TRUE) + 
 		scale_fill_gradient2(low=low, mid=mid, high=high, midpoint=median(x$value), name=y) + 
-		geom_contour(colour = colour, stroke = 0.1, breaks = pretty(x[,"value"],nbreaks)) + 
+		geom_contour(colour = colour, breaks = pretty(x[,"value"],nbreaks)) + 
 		geom_text_contour(size = 3.5, stroke = 0.1, breaks = pretty(x[,"value"],nbreaks)) + 
 		xlab(xlab) +
 		ylab(ylab) +
@@ -161,7 +172,7 @@ plot.Markov_grid <- function(x,y=expression(atop(italic("G")*-value~per, unit~ti
 
 #STATIONARY DISTRIBUTION
 
-Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probmix=1,probnbin=0.5,disj=1,
+Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probmix=0,probnbin=0.5,disj=1,
 						 RanRep=FALSE,alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,
 						 Vd=100,V=NULL,Qparam=30)
 {
@@ -189,6 +200,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 					  RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,StateDep=StateDep,a=a,b=b,q=q,z=z,
 					  Vd=Vd,V=V,Qparam=Qparam)
 	
+	#If the shift size distribution is exponential or exponential-geometric mixture
 	if(shiftfun=="exp" | shiftfun=="exp-geo")
 	{
 		if(V<=0)											stop("Non-applicable V parameter was given. V is the maximum distance from the target value taken into account. This should be a positive number.")
@@ -232,6 +244,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		nov		<-	pnorm(k-((V/(Vd-1))*(0:(Vd-1))-((V/(Vd-1))*0.5)),0,sigma)
 		nov[1]	<-	pnorm(k,0,sigma)
 		
+		#Random repair
 		if(RanRep)
 		{
 			mtx	<-	NULL
@@ -239,7 +252,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 			{
 				v	  <-	NULL
 				v	  <-	c(pbeta(((0:j)+1)/(j-0.5),alpha,beta)-pbeta((0:j)/(j-0.5),alpha,beta),rep(0,Vd-j))
-				mtx	<-	rbind(mtx,v)
+				mtx   <-	rbind(mtx,v)
 			}
 			mtx	<-	mtx[,1:Vd]
 			mtx	<-	rbind(c(1,rep(0,Vd)), cbind(0,mtx)[1:(Vd-1),])[,1:Vd]
@@ -248,7 +261,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 			mtx	<-	cbind(1,matrix(0,Vd,Vd-1))
 		}
 		
-		###
+		### Transition matrix
 		
 		mx_alarm	<-	matrix(numeric(0),Vd,Vd)
 		mx_ooc		<-	matrix(numeric(0),Vd,Vd)
@@ -260,7 +273,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		kvec_disc2	<-	numeric(min(ione,Vd))
 		for(m in 1:ione)
 		{
-		Vdindex       <-  Vd-(m-1)
+			Vdindex     <-  Vd-(m-1)
 			quv_w		<-	c(quv0[1:(Vdindex-1)], quv0[Vdindex]+(1-sum(quv0[1:Vdindex])))
 			kvec_disc1[m]	<-	(1-nov[Vd])*	quv_w[Vdindex]
 			kvec_disc2[m]	<-	nov[Vd]*	  	quv_w[Vdindex]
@@ -286,7 +299,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 			kvec_disc2	<-	numeric(min(inum,Vd))
 			for(m in 1:inum)
 			{
-			Vdindex       	<-  Vd-(m-1)
+				Vdindex       	<-  Vd-(m-1)
 				quv_w			<-	c(quv[1:(Vdindex-1)], quv[Vdindex]+(1-sum(quv[1:Vdindex])))
 				kvec_disc1[m]	<-	(1-nov[Vd])*	quv_w[Vdindex]
 				kvec_disc2[m]	<-	nov[Vd]*	  	quv_w[Vdindex]
@@ -309,9 +322,9 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		mx_fin	<-	rbind(mx_fin[1,], mx_fin[(Vd+1),], mx_fin[2:Vd,], mx_fin[(Vd+2):(Vd*2),])
 		mx_fin	<-	mx_fin*(1/apply(mx_fin,1,sum))
 		
-		###
+		### Transition matrix end
 		
-		#RSI
+		#Random sampling (with or without distance dependency)
 		if(RanSam)
 		{
 			if(StateDep)
@@ -334,6 +347,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		mx_fin	<-	mx_fin*(1/apply(mx_fin,1,sum))
 		
 		###
+		
 		mx_fin_full	<-	mx_fin
 		if(RanRep==TRUE)	mx_fin	<-	mx_fin[3:nrow(mx_fin),3:ncol(mx_fin)]
 		
@@ -346,7 +360,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		paramlist <- c(paramlist, list(mtx=mtx), list(viv=viv))
 	}
 	
-	#####
+	#If the shift size distribution is degenerate, i.e. a fixed value
 	if(shiftfun=="deg")
 	{
 		mx_fin	<-	t(matrix(
@@ -377,12 +391,14 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 
 
 #COST CALCULATION
+
+#Exponential shift size distribution
 costfunexp	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,cofun=cofun_default,
 						 coparams=NULL,crfun=crfun_default,crparams=NULL,vcofun=vcofun_default,vcoparams=c(0,0),
 						 vcrfun=vcrfun_default,vcrparams=c(0,0),ALL=TRUE,Markovstat_fun=Markovstat)
 {
 	#PARAMETERS
-	inherited                           <- c(statdist[[3]],statd=statdist[1])
+	inherited <- c(statdist[[3]],statd=statdist[1])
 	names(inherited)[length(inherited)] <- "statd"
 	list2env(inherited,environment())
 	
@@ -396,7 +412,7 @@ costfunexp	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,co
 		actualstatd	<-	Markovstat_fun(h=h,k=k,shiftfun="exp",sigma=sigma,s=s,delta=delta,probmix=probmix,probnbin=probnbin,disj=disj,
 									   RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,StateDep=StateDep,a=a,b=b,q=q,z=z,
 									   Vd=Vd,V=V,Qparam=Qparam)
-		inherited                           <- c(actualstatd[[3]],statd=actualstatd[1])
+		inherited <- c(actualstatd[[3]],statd=actualstatd[1])
 		names(inherited)[length(inherited)] <- "statd"
 		list2env(inherited,environment())
 	}
@@ -412,7 +428,8 @@ costfunexp	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,co
 	#
 	
 	int			<-	seq(0,V,by=(V/(Vd-1))) - (V/(Vd-1))/2
-	int[1]		<-	0		
+	int[1]		<-	0
+	#Closed-form solution for exponential shift size distribution
 	allsqmeans	<-	s*h*delta*(((s*h*delta)/3)+delta+int)+int^2
 	Averages	<-	as.vector(apply(sweep(MintaUtanMtx,MARGIN=2,allsqmeans,`*`),1,sum))
 	
@@ -461,7 +478,9 @@ costfunexp	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,co
 	
 	######
 	
-	results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
+	results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),
+					 Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),
+					 Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
 	colnames(results[[1]])	<-	c("G-value","Expected cost","Total cost sd","Cost sd due to process var.","2nd process moment","3rd process moment","4th process moment")
 	colnames(results[[2]])	<-	c("Sampling cost","Repair cost","OOC cost")
 	colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
@@ -472,12 +491,13 @@ costfunexp	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,co
 
 }
 
+#Exponential-geometric mixture shift size distribution
 costfunexpgeo	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL,cofun=cofun_default,
 							 coparams=NULL,crfun=crfun_default,crparams=NULL,vcofun=vcofun_default,vcoparams=c(0,0),
 							 vcrfun=vcrfun_default,vcrparams=c(0,0),ALL=TRUE,Markovstat_fun=Markovstat,qu_mix=qu_mix.)
 {
 	#PARAMETERS
-	inherited                           <- c(statdist[[3]],statd=statdist[1])
+	inherited <- c(statdist[[3]],statd=statdist[1])
 	names(inherited)[length(inherited)] <- "statd"
 	list2env(inherited,environment())
 	
@@ -491,14 +511,10 @@ costfunexpgeo	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL
 		actualstatd	<-	Markovstat_fun(h=h,k=k,shiftfun="exp-geo",sigma=sigma,s=s,delta=delta,probmix=probmix,probnbin=probnbin,disj=disj,
 									   RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,StateDep=StateDep,a=a,b=b,q=q,z=z,
 									   Vd=Vd,V=V,Qparam=Qparam)
-		inherited                           <- c(actualstatd[[3]],statd=actualstatd[1])
+		inherited <- c(actualstatd[[3]],statd=actualstatd[1])
 		names(inherited)[length(inherited)] <- "statd"
 		list2env(inherited,environment())
 	}
-	
-	int2	<-	seq(0,V,by=(V/(Vd-1))) + (V/(Vd-1))*0.5
-	rate	<-	1/delta
-	N		<-	1:Qparam
 	
 	INC	<-	c(1,rep(0,(Vd*2-1)))
 	FA	<-	c(1,rep(0,(Vd*2-1)))
@@ -512,24 +528,8 @@ costfunexpgeo	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL
 	
 	int			<-	seq(0,V,by=(V/(Vd-1))) - (V/(Vd-1))/2
 	int[1]		<-	0
-	
-	qvec<-NULL
-	for(delt in seq(0,h,by=h/9))
-	{
-		quv					<-	qu_mix(1:Vd,h=delt,s,N,rate,probmix,probnbin,disj,int2)
-		quv[length(quv)]	<-	quv[length(quv)] + (1-sum(quv))
-		qvec				<-	rbind(qvec,quv)
-	}
-	
-	sqdistances	<-	(t(matrix(int , length(int) , length(int))) + int)^2
-	
-	meansatt<-NULL
-	for (i in 1:nrow(qvec))
-	{
-		meansatt	<-	rbind(meansatt,apply(sqdistances*qvec[i,],2,sum))
-	}
-	allsqmeans	<-	apply(meansatt,2,sum)/10
-	
+	#Closed-form solution for exponential-geometric shift size distribution
+    allsqmeans	<-	1/6*(6*int^2+6*delta*h*int*s-6*delta*h*int*probmix*s+(6*h*int*probmix*s*disj)/probnbin+(h*s*(-6*delta^2*probnbin^2*(-1+probmix)-3*(-2+probnbin)*probmix*disj^2+2*h*s*(delta*(probnbin-probnbin*probmix)+probmix*disj)^2))/probnbin^2)
 	Averages	<-	as.vector(apply(sweep(MintaUtanMtx,MARGIN=2,allsqmeans,`*`),1,sum))
 	
 	distance_dist	<-	statd[c(1,(Vd+2):(Vd*2))] + statd[2:(Vd+1)]
@@ -579,7 +579,9 @@ costfunexpgeo	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL
 	
 	######
 	
-	results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
+	results	<-	list(Results=as.data.frame(t(c(G,EC,ALLSDC,sqrt(VARC),mom2,mom3,mom4))),
+					 Subcosts=as.data.frame(t(c(cs/h,sum(cr*statd),sum(co*statd)))),
+					 Parameters=as.data.frame(t(c(h,k))),Stationary_distribution=statd)
 	colnames(results[[1]])	<-	c("G-value","Expected cost","Total cost sd","Cost sd due to process var.","2nd process moment","3rd process moment","4th process moment")
 	colnames(results[[2]])	<-	c("Sampling cost","Repair cost","OOC cost")
 	colnames(results[[3]])	<-	c("Time between samplings (h)","Critical value (k)")
@@ -589,11 +591,12 @@ costfunexpgeo	<-	function(fp=NULL,statdist,p=1,constantr=FALSE,ooc_rep=0,cs=NULL
 	if(ALL)		return(results)
 }
 
-
-costfundeg	<-	function(fp=NULL,statdist,cs=NULL,crparams=NULL,cf=crparams,coparams=NULL,p=1,ALL=TRUE,Markovstat_fun=Markovstat)
+#Degenerate shift size distribution
+costfundeg	<-	function(fp=NULL,statdist,cs=NULL,crparams=NULL,
+						 cf=crparams,coparams=NULL,p=1,ALL=TRUE,Markovstat_fun=Markovstat)
 {
 	#PARAMETERS
-	inherited                           <- c(statdist[[3]],statd=statdist[1])
+	inherited <- c(statdist[[3]],statd=statdist[1])
 	names(inherited)[length(inherited)] <- "statd"
 	list2env(inherited,environment())
 	
@@ -607,7 +610,7 @@ costfundeg	<-	function(fp=NULL,statdist,cs=NULL,crparams=NULL,cf=crparams,copara
 		actualstatd	<-	Markovstat_fun(h=h,k=k,shiftfun="deg",sigma=sigma,s=s,delta=delta,probmix=probmix,probnbin=probnbin,disj=disj,
 									  RanRep=RanRep,alpha=alpha,beta=beta,RanSam=RanSam,StateDep=StateDep,a=a,b=b,q=q,z=z,
 									  Vd=Vd,V=V,Qparam=Qparam)
-		inherited                           <- c(actualstatd[[3]],statd=actualstatd[1])
+		inherited <- c(actualstatd[[3]],statd=actualstatd[1])
 		names(inherited)[length(inherited)] <- "statd"
 		list2env(inherited,environment())
 	}
@@ -644,7 +647,7 @@ costfundeg	<-	function(fp=NULL,statdist,cs=NULL,crparams=NULL,cf=crparams,copara
 	if(ALL)		return(results)
 }
 
-
+#The main function of the package, essentially a wrapper for the above cost calculation functions
 Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 						 constantr=FALSE,ooc_rep=0,cs=NULL,cofun=cofun_default,coparams=NULL,crfun=crfun_default,crparams=NULL,
 						 cf=crparams, vcofun=vcofun_default,vcoparams=c(0,0),vcrfun=vcrfun_default,vcrparams=c(0,0),
@@ -659,6 +662,7 @@ Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 	if((length(h)>1 | length(k)>1) & OPTIM)					warning("h or k is of length greater than one. Output will be a data.frame of G-values for all given h and k parameter values, OPTIM value as TRUE is ignored.")
 	if(is.null(cs) | is.null(coparams) | is.null(crparams))	stop("Some necessary cost parameters are missing. Check the documentation for the list of necessary parameters.")
 
+	#If optimisation is requested then R needs to remember the relevant parameters even when a new session is opened due to parallelisation
 	if(OPTIM){
 		if(!exists("gr",where=environment()))		gr 		<-	NULL
 		if(!exists("lower",where=environment()))	lower	<-	c(0.00000000001,0)
@@ -683,8 +687,10 @@ Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 			}
 		}
 	}
-
+	
+	#Exponential shift size distribution
 	if(shiftfun=="exp"){
+		#If h or k is longer than 1, then create results for all given values
 		if(length(h)>1 | length(k)>1) {
 			if(is.null(parallel_opt))	parallel_opt	<-	list(cl=makeCluster(max(c(detectCores()-1,1))),forward=FALSE,loginfo=TRUE)
 			registerDoParallel(parallel_opt$cl)
@@ -713,24 +719,27 @@ Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 										      vcrfun=vcrfun,vcrparams=vcrparams,ALL=FALSE)
 				stopCluster(parallel_opt$cl)
 				
-				res			<-	costfunexp(fp=res_optim$par,
-										   statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
-										   coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
-										   vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
+				res <- costfunexp(fp=res_optim$par,
+								  statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
+								  coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
+								  vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
 			}	else {
 				if(sum(h!=statdist[[3]]$h)>0 | sum(k!=statdist[[3]]$k)>0){
-					res			<-	costfunexp(fp=c(h,k),statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
-											   coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
-											   vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
+					res <- costfunexp(fp=c(h,k),statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
+									  coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
+									  vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
 				}	else {
-					res			<-	costfunexp(statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
-											   coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
-											   vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
+					res <- costfunexp(statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
+									  coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
+									  vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
 				}
 			}
 		}
 	}
+	
+	#Exponential-geometrix shift size distribution
 	if(shiftfun=="exp-geo"){
+		#If h or k is longer than 1, then create results for all given values
 		if(length(h)>1 | length(k)>1) {
 			if(is.null(parallel_opt))	parallel_opt	<-	list(cl=makeCluster(max(c(detectCores()-1,1))),forward=FALSE,loginfo=TRUE)
 			registerDoParallel(parallel_opt$cl)
@@ -759,24 +768,27 @@ Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 											vcrfun=vcrfun,vcrparams=vcrparams,ALL=FALSE)
 				stopCluster(parallel_opt$cl)
 				
-				res			<-	costfunexpgeo(fp=res_optim$par,
-											statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
-											coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
-											vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
+				res	 <- costfunexpgeo(fp=res_optim$par,
+									  statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
+									  coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
+									  vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
 			}	else {
 				if(sum(h!=statdist[[3]]$h)>0 | sum(k!=statdist[[3]]$k)>0){
-					res			<-	costfunexpgeo(fp=c(h,k),statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
-												  coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
-												  vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
+					res <- costfunexpgeo(fp=c(h,k),statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
+										 coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
+										 vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
 				}	else {
-					res			<-	costfunexpgeo(statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
-												  coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
-												  vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
+					res <- costfunexpgeo(statdist=statdist,p=p,constantr=constantr,ooc_rep=ooc_rep,cs=cs,cofun=cofun,
+										 coparams=coparams,crfun=crfun,crparams=crparams,vcofun=vcofun,vcoparams=vcoparams,
+										 vcrfun=vcrfun,vcrparams=vcrparams,ALL=TRUE)
 				}
 			}
 		}
 	}
+	
+	#Degenerate shift size distribution
 	if(shiftfun=="deg"){
+		#If h or k is longer than 1, then create results for all given values
 		if(length(h)>1 | length(k)>1) {
 			if(is.null(parallel_opt))	parallel_opt	<-	list(cl=makeCluster(max(c(detectCores()-1,1))),forward=FALSE,loginfo=TRUE)
 			registerDoParallel(parallel_opt$cl)
@@ -798,15 +810,15 @@ Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 			if(OPTIM){
 				if(is.null(parallel_opt))	parallel_opt	<-	list(cl=makeCluster(max(c(detectCores()-1,1))),forward=FALSE,loginfo=TRUE)
 				res_optim	<-	optimParallel(par=c(h,k), fn=costfundeg, gr=gr, lower=lower, upper=upper, method=method, control=control,
-											hessian=hessian, parallel=parallel_opt, statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=FALSE)
+											  hessian=hessian, parallel=parallel_opt, statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=FALSE)
 				stopCluster(parallel_opt$cl)
 				
-				res			<-	costfundeg(fp=res_optim$par,statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=TRUE)
+				res <- costfundeg(fp=res_optim$par,statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=TRUE)
 			}	else {
 				if(sum(h!=statdist[[3]]$h)>0 | sum(k!=statdist[[3]]$k)>0){
-					res			<-	costfundeg(fp=c(h,k),statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=TRUE)
+					res <- costfundeg(fp=c(h,k),statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=TRUE)
 				}	else {
-					res			<-	costfundeg(statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=TRUE)
+					res <- costfundeg(statdist=statdist,cs=cs,crparams=crparams,cf=crparams,coparams=coparams,p=p,ALL=TRUE)
 				}
 			}
 		}
@@ -819,7 +831,7 @@ Markovchart	<-	function(statdist,h=NULL,k=NULL,OPTIM=FALSE,p=1,
 
 #SIMULATION
 
-Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,probmix=1,probnbin=0.5,disj=1,RanRep=FALSE,
+Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,probmix=0,probnbin=0.5,disj=1,RanRep=FALSE,
 						 alpha=NULL,beta=NULL,RanSam=FALSE,StateDep=FALSE,a=NULL,b=NULL,q=NULL,z=NULL,detail=100,Vd=50,V,
 						 burnin=1)
 {
@@ -841,14 +853,16 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 	detail	<-	round(detail)
 	burnin	<-	round(burnin)
 
+	#Exponential shift size distribution
 	if(shiftfun=="exp")
 	{
-		#EXP simulation is creating detail number data points per sampling interval
+		#Exponential simulation is creating 'detail' number data points per sampling interval
 		eventvec	<-	"start"
 		xbase		<-	0
 		x			<-	NULL
 		for (i in 1:num)
 		{
+			#The first two lines make sure that the simulation is properly initiated
 			if(i>1)												xbase		<-	x[length(x)]
 			if(i==2)											eventvec	<-	eventvec[2]
 			if(eventvec[length(eventvec)]=="alarm" & !RanRep)	xbase		<-	x[length(x)]*0 else	{
@@ -858,6 +872,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 			stvec		<-	rexp(h*s*detail,s)
 			shifttimes	<-	round(cumsum(stvec)[cumsum(stvec)<h],digits=2)
 			shiftsizes 	<-	cumsum(rexp(length(shifttimes),1/delta))
+			#If shifts occurr during the current sampling interval, then distribute these 'shiftsizes' according to the 'shifttimes'
 			if(length(shifttimes)!=0)
 			{
 				onetr	<-	NULL
@@ -870,6 +885,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 				x	<-	c(x,onetr)
 			}	else	{x	<-	c(x,rep(xbase,round(h*detail)))}
 			
+			#Random sampling (with or without distance dependency) - sampling probability calculation
 			if(RanSam) 
 			{
 				if(StateDep)
@@ -879,9 +895,10 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 					probab	<-	1/(1+exp(-q*(x[length(x)]-z)))
 				}
 			}else{
-					probab	<-	1
+					probab	<-	1 #If there is no randomness in the sampling, then it takes place with probability 1
 			}
 			
+			#Sampling can result in sampling failure or success depending on the probability of the sampling; alarm is produced if the observed value (burdened by normally-distributed error) is above the critical value
 			if(rbinom(n=1, size=1, prob=probab)==1)
 			{
 				eventvec	<-	c(eventvec,"success")
@@ -892,14 +909,16 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 		}
 	}
 	
+	#Exponential-geometric shift size distribution
 	if(shiftfun=="exp-geo")
 	{
-		#EXP-GEO simulation is creating detail number data points per sampling interval
+		#Exponential-geometric simulation is creating 'detail' number data points per sampling interval
 		eventvec	<-	"start"
 		xbase		<-	0
 		x			<-	NULL
 		for (i in 1:num)
 		{
+			#The first two lines make sure that the simulation is properly initiated
 			if(i>1)												xbase		<-	x[length(x)]
 			if(i==2)											eventvec	<-	eventvec[2]
 			if(eventvec[length(eventvec)]=="alarm" & !RanRep)	xbase		<-	x[length(x)]*0 else	{
@@ -908,6 +927,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 			
 			stvec		<-	rexp(h*s*detail,s)
 			shifttimes	<-	round(cumsum(stvec)[cumsum(stvec)<h],digits=2)
+			#If shifts occurr during the current sampling interval, then distribute these 'shiftsizes' according to the 'shifttimes'
 			if(length(shifttimes)!=0)
 			{
 			pattern		<-	rbinom(length(shifttimes),1,probmix)
@@ -928,6 +948,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 				x	<-	c(x,onetr)
 			}	else	{x	<-	c(x,rep(xbase,round(h*detail)))}
 			
+			#Random sampling (with or without distance dependency) - sampling probability calculation
 			if(RanSam) 
 			{
 				if(StateDep)
@@ -937,9 +958,10 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 					probab	<-	1/(1+exp(-q*(x[length(x)]-z)))
 				}
 			}else{
-					probab	<-	1
+					probab	<-	1 #If there is no randomness in the sampling, then it takes place with probability 1
 			}
 		
+			#Sampling can result in sampling failure or success depending on the probability of the sampling; alarm is produced if the observed value (burdened by normally-distributed error) is above the critical value
 			if(rbinom(n=1, size=1, prob=probab)==1)
 			{
 				eventvec	<-	c(eventvec,"success")
@@ -950,7 +972,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 		}
 	}
 	
-	
+	#Cut burn-in period and discretise results
 	burntin			<-	x[seq(detail,num*detail,detail)][(burnin+1):length(x[seq(detail,num*detail,detail)])]
 	burntevent		<-	eventvec[(burnin+1):length(eventvec)]
 	int				<-	seq(0,V,by=(V/(Vd-1)))
@@ -966,10 +988,13 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 	discr_sim									<-	c(sum(burntin==0 & burntevent!="alarm")/length(burntin),sum(burntin==0 & burntevent=="alarm")/length(burntin),discr_sim_alarm,discr_sim_ooc)
 	
 	int2				<-	seq(0,V,by=(V/(Vd-1))) + (V/(Vd-1))*0.5
-	names(discr_sim)	<-	c("In-control","False-alarm",paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
+	names(discr_sim)	<-	c("In-control","False-alarm",paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),
+	                                                     paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),
+							  paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
 
 	
-	res	        <-	list(Value_at_samplings=x[seq(detail,num*detail,detail)], Sampling_event=eventvec, Simulation_data=x, Stationary_distribution=discr_sim)
+	res	        <-	list(Value_at_samplings=x[seq(detail,num*detail,detail)],
+						 Sampling_event=eventvec, Simulation_data=x, Stationary_distribution=discr_sim)
 	class(res)	<-	c("Markov_sim", class(res))
 	return(res)
 }

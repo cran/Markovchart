@@ -9,7 +9,7 @@ Calculates the stationary distribution of a process described by a discrete stat
 }
 \usage{
 Markovstat(shiftfun = c("exp", "exp-geo", "deg"), h, k, sigma,
-           s, delta, probmix = 1, probnbin = 0.5, disj = 1,
+           s, delta, probmix = 0, probnbin = 0.5, disj = 1,
            RanRep = FALSE, alpha = NULL, beta = NULL,
            RanSam = FALSE, StateDep = FALSE, a = NULL,
            b = NULL, q = NULL, z = NULL, Vd = 100, V,

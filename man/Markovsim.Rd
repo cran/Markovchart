@@ -9,7 +9,7 @@ Wrapper for simulation of processes with a Markov chain-based control chart setu
 }
 \usage{
 Markovsim(shiftfun = c("exp", "exp-geo"), num = 100, h, k, sigma,
-          s, delta, probmix = 1, probnbin = 0.5, disj=1,
+          s, delta, probmix = 0, probnbin = 0.5, disj=1,
           RanRep = FALSE, alpha = NULL, beta = NULL, RanSam = FALSE,
           StateDep = FALSE, a = NULL, b = NULL, q = NULL,
           z = NULL, detail = 100, Vd = 50, V, burnin = 1)
