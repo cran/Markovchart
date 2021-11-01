@@ -702,10 +702,11 @@ c_{analogue}(v) & =  3.3 + \frac{-12.22}{v + 9.37}, \ c_{GLP}(v) =  1.69 + 0.07v
 where $v$ is the HbA1c level.
 
 The same restrictions, discretisation and <tt>nls</tt> function was used when estimating the relationship between the OOC (health care event) cost, cost variance and HbA1c level. Additionally, as there may be a lag between a deteriorated patient state and the resulting health care event, a 6-month cumulative cost was calculated. The resulting functions were the following:
-\begin{equation*}
-c_{o}(v) =  0.62 + 0.0062v, \varsigma_{o}(v) =  5.12 + 0.13v, \\
-\end{equation*}
-where $v$ again is the HbA1c level.
+\begin{align*}
+c_{o}(v) & =  0.62 + 0.0062{\cal A}_{h}^2(v), \\
+\varsigma_{o}(v) & =  5.12 + 0.13{\cal A}_{h}^2(v), \\
+\end{align*}
+where $v$ again is the HbA1c level and ${\cal A}_{h}^2(v)$ is the expected total squared distance from this starting value on the condition that the sampling interval is $h$. Of course, the time between samplings, $h$, may not be 6 months in every case, but this was deemed to be a good compromise as there was not enough data to to take $h$ into account too during the estimation.
 
 The resulting lines fitted to the data together with standard deviation bands can be seen in the figure below.
 

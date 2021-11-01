@@ -12,7 +12,7 @@
 
 <meta name="author" content="Balázs Dobi" />
 
-<meta name="date" content="2021-10-10" />
+<meta name="date" content="2021-10-31" />
 
 <title>Application examples for the Markovchart R package</title>
 
@@ -165,7 +165,7 @@ div.csl-indent {
 
 <h1 class="title toc-ignore">Application examples for the Markovchart R package</h1>
 <h4 class="author">Balázs Dobi</h4>
-<h4 class="date">2021-10-10</h4>
+<h4 class="date">2021-10-31</h4>
 
 
 
@@ -572,9 +572,10 @@ E11 ICD
 c_{analogue}(v) &amp; =  3.3 + \frac{-12.22}{v + 9.37}, \ c_{GLP}(v) =  1.69 + 0.07v, \\
 \varsigma_{analogue}(v) &amp; =  7.09 + \frac{-3.32}{v + 1.08}, \ \varsigma_{GLP}(v) =  7 - 0.2v, \\
 \end{align*}\]</span> where <span class="math inline">\(v\)</span> is the HbA1c level.</p>
-<p>The same restrictions, discretisation and <tt>nls</tt> function was used when estimating the relationship between the OOC (health care event) cost, cost variance and HbA1c level. Additionally, as there may be a lag between a deteriorated patient state and the resulting health care event, a 6-month cumulative cost was calculated. The resulting functions were the following: <span class="math display">\[\begin{equation*}
-c_{o}(v) =  0.62 + 0.0062v, \varsigma_{o}(v) =  5.12 + 0.13v, \\
-\end{equation*}\]</span> where <span class="math inline">\(v\)</span> again is the HbA1c level.</p>
+<p>The same restrictions, discretisation and <tt>nls</tt> function was used when estimating the relationship between the OOC (health care event) cost, cost variance and HbA1c level. Additionally, as there may be a lag between a deteriorated patient state and the resulting health care event, a 6-month cumulative cost was calculated. The resulting functions were the following: <span class="math display">\[\begin{align*}
+c_{o}(v) &amp; =  0.62 + 0.0062{\cal A}_{h}^2(v), \\
+\varsigma_{o}(v) &amp; =  5.12 + 0.13{\cal A}_{h}^2(v), \\
+\end{align*}\]</span> where <span class="math inline">\(v\)</span> again is the HbA1c level and <span class="math inline">\({\cal A}_{h}^2(v)\)</span> is the expected total squared distance from this starting value on the condition that the sampling interval is <span class="math inline">\(h\)</span>. Of course, the time between samplings, <span class="math inline">\(h\)</span>, may not be 6 months in every case, but this was deemed to be a good compromise as there was not enough data to to take <span class="math inline">\(h\)</span> into account too during the estimation.</p>
 <p>The resulting lines fitted to the data together with standard deviation bands can be seen in the figure below.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>cost_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> cost_plots, <span class="fu">aes</span>(<span class="at">x =</span> HbA1c, <span class="at">y =</span> <span class="st">`</span><span class="at">Therapy cost</span><span class="st">`</span>)) <span class="sc">+</span> </span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">x =</span> HbA1c, <span class="at">ymin =</span> low, <span class="at">ymax =</span> high, <span class="at">fill =</span> <span class="st">&#39;±SD&#39;</span>), <span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span> </span>
