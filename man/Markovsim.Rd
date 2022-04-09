@@ -74,7 +74,7 @@ The steepness of the curve of the random sampling time logistic function.
 The logistic sigmoid's midpoint of the random sampling time logistic function.
 }
   \item{detail}{
-The detail of the simulation, i.e. how many data points should be simulated within a sampling interval (including the sampling itself). Should be a positive integer greater than 1.
+The detail of the simulation, i.e. how many data points (including the moment of the sampling itself) should be simulated within a unit time. Should be a positive integer greater than 1, and the user should consider the length of the sampling interval \code{h}, as a shorter interval leads to less datapoints.
 }
   \item{Vd}{
 Integer discretisation parameter: the number of states after the equidistant discretisation of the state space. Should be an integer value greater than 2. This parameter is needed to calculate a stationary distibution that can be compared to results of the \code{Markovchart} function.

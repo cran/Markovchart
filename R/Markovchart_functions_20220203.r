@@ -355,7 +355,7 @@ Markovstat	<-	function(shiftfun=c("exp","exp-geo","deg"),h,k,sigma,s,delta,probm
 		statd			<-	eigenvec/sum(eigenvec)
 		statd[statd<0]	<-	0
 		if(RanRep==TRUE)	statd	<-	c(0,0,statd)
-		names(statd)	<-	c("In-control","False-alarm",paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
+		names(statd)	<-	c("In-control","False-alarm",paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
 		
 		paramlist <- c(paramlist, list(mtx=mtx), list(viv=viv))
 	}
@@ -973,7 +973,7 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 	}
 	
 	#Cut burn-in period and discretise results
-	burntin			<-	x[seq(detail,num*detail,detail)][(burnin+1):length(x[seq(detail,num*detail,detail)])]
+	burntin			<-	x[seq(round(h*detail),num*round(h*detail),round(h*detail))][(burnin+1):length(x[seq(round(h*detail),num*round(h*detail),round(h*detail))])]
 	burntevent		<-	eventvec[(burnin+1):length(eventvec)]
 	int				<-	seq(0,V,by=(V/(Vd-1)))
 	discr_sim_alarm	<-	NULL
@@ -988,9 +988,9 @@ Markovsim	<-	function(shiftfun=c("exp","exp-geo"),num=100,h,k,sigma,s,delta,prob
 	discr_sim									<-	c(sum(burntin==0 & burntevent!="alarm")/length(burntin),sum(burntin==0 & burntevent=="alarm")/length(burntin),discr_sim_alarm,discr_sim_ooc)
 	
 	int2				<-	seq(0,V,by=(V/(Vd-1))) + (V/(Vd-1))*0.5
-	names(discr_sim)	<-	c("In-control","False-alarm",paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),
+	names(discr_sim)	<-	c("In-control","False-alarm",paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),
 	                                                     paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"),
-							  paste("True-alarm",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
+							  paste("OOC",1:(Vd-1),c(round(int2[1:(Vd-2)],3),paste(round(V/(Vd-1)*(Vd-2),3),"+",sep="")),sep="_"))	
 
 	
 	res	        <-	list(Value_at_samplings=x[seq(detail,num*detail,detail)],
